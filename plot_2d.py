@@ -1,3 +1,9 @@
+"""
+SPDX-License-Identifier: MIT
+Copyright © 2015 - 2022 Markus Völk
+Code was taken from https://github.com/mvoelk/utils
+"""
+
 
 import numpy as np
 import matplotlib.pyplot as plt

@@ -1,3 +1,9 @@
+"""
+SPDX-License-Identifier: MIT
+Copyright © 2015 - 2022 Markus Völk
+Code was taken from https://github.com/mvoelk/utils
+"""
+
 
 import numpy as np
 
@@ -29,7 +35,7 @@ def new_arrow(l=0.1, r=0.003, r2=0.006, l2=0.012, color='#ff0000'):
     return arrow
 
 def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003):
-    
+
     if T is not None:
         p, R = T[:3,3], T[:3,:3]
 
@@ -43,7 +49,7 @@ def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003):
 
     axes = Object3D()
     axes.add([arrow_x, arrow_y, arrow_z])
-    
+
     axes.position = astuple(p)
     axes.quaternion = astuple(rot2quat(R, True))
 
