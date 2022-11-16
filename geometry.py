@@ -291,6 +291,62 @@ def depth_to_xyz(depth, K):
     y = (yi - cy)*z / fy
     return np.stack([x,y,z], axis=-1)
 
+def xyz_to_orthographic(xyz, rgb=None, image_size=(512, 320), pixel_per_meter=300):
+    """Creates an orthographic projection from a point cloud.
+    
+    # Arguments
+        xyz: points in 3d space, shape (h, w, 3)
+        rgb: color of points, shape (h, w, 3)
+        image_size: shape (2)
+        pixel_per_meter:
+    
+    # Return
+        depth: orthograpic projekted depth map, shape (h, w)
+        rgb: orthograpic projekted rgb image, shape (h, w, 3)
+    """
+    
+    w, h = image_size
+    
+    xyz = np.reshape(xyz, (-1,3))
+    idxs = np.argsort(-xyz[:,2])
+    x, y, z = xyz[idxs].T
+    
+    x_img = np.int32(np.round( x * pixel_per_meter + (w-1)/2 ))
+    y_img = np.int32(np.round( y * pixel_per_meter + (h-1)/2 ))
+    
+    m = np.logical_and(
+        np.logical_and(x_img >= 0, x_img < w), 
+        np.logical_and(y_img >= 0, y_img < h))
+    
+    x_img, y_img = x_img[m], y_img[m]
+    
+    img = np.zeros((h,w), dtype='float32')
+    img[y_img,x_img] = z[m]
+    
+    if rgb is not None:
+        rgb = np.reshape(rgb, (-1,3))[idxs]
+        rgb_ = np.zeros((h,w,3), dtype='float32')
+        rgb_[y_img,x_img] = rgb[m]
+        return img, rgb_
+    
+    return img
+
+def perspective_to_orthographic(depth, rgb=None, K=np.eye(3), image_size=(512, 320), pixel_per_meter=300):
+    '''Creates a orthographic projection from a perspectiv depth map.
+
+    # Arguments
+        depth: depht map, shape (h, w)
+        rgb: color of points, shape (h, w, 3)
+        K: camera matrix, shape (3, 3)
+        image_size: shape (2)
+        pixel_per_meter: 
+        
+    # Return
+        depth: orthograpic projekted depth map, shape (h, w)
+        rgb: orthograpic projekted rgb image, shape (h, w, 3)
+    '''
+    xyz = depth_to_xyz(depth, K)
+    return xyz_to_orthographic(xyz, rgb, image_size=image_size, pixel_per_meter=pixel_per_meter)
 
 def bilinear_interpolate_points(img, xy):
     """
