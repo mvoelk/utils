@@ -1,3 +1,8 @@
+"""
+SPDX-License-Identifier: MIT
+Copyright © 2017 - 2022 Markus Völk
+Code was taken from https://github.com/mvoelk/utils
+"""
 
 import re, random
 

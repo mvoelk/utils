@@ -89,3 +89,18 @@ def plot_abs_error_hist(y_true, y_pred=None, mask=None, bins=100, cumulative=Fal
     plt.title(name + (' (sparsity %.2f)'%(sparsity) if sparsity > 0 else ''))
     plt.show()
 
+
+def plot_output_distribution(y, mask=None):
+    # y: shape (..., num_features)
+    # mask: shape (...)
+    
+    a = np.reshape(y, (-1,y.shape[-1]))
+    if mask is not None:
+        m = np.reshape(mask, (-1))
+        a = a[m]
+
+    plt.figure(figsize=(16,4))
+    r = range(a.shape[-1])
+    plt.errorbar(r, np.mean(a, axis=0), np.std(a, axis=0), linestyle='None', marker='x')
+    plt.xticks(r)
+    plt.show()
