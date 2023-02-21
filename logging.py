@@ -145,7 +145,8 @@ def filter_signal(x, y, window_length=1000):
     return x, y
 
 
-def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only=False, autoscale=True, legend_loc='best'):
+def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only=False, 
+             autoscale=True, legend_loc='best', save_plots=False):
     """Plot and compares the training log contained in './checkpoints/'.
     
     # Agrumets
@@ -164,6 +165,10 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     
     loss_terms = {'loss', 'error', 'abs', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
+    
+    if save_plots:
+        plotdir = './plots/' + time.strftime('%Y%m%d%H%M') + '_log'
+        os.makedirs(plotdir, exist_ok=True)
     
     if type(log_dirs) == str:
         log_dirs = [log_dirs]
@@ -280,15 +285,23 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             #ax2.set_yscale('linear')
             ax2.get_yaxis().get_major_formatter().set_useOffset(False)
             
+            plt.tight_layout()
+            if save_plots:
+                plt.savefig(plotdir+'/%s.pdf'%(k), bbox_inches='tight')
             plt.show()
+            
         else:
             #print(k+' no values')
             plt.close()
 
-def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validation=False):
+def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validation=False, save_plots=False):
 
     loss_terms = {'loss', 'error', 'abs', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
+    
+    if save_plots:
+        plotdir = './plots/' + time.strftime('%Y%m%d%H%M') + '_history'
+        os.makedirs(plotdir, exist_ok=True)
     
     if type(log_dirs) == str:
         log_dirs = [log_dirs]
@@ -365,6 +378,9 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
                     #plt.hlines([0.5,0.8,0.9], xmin, xmax, linestyles='-.', linewidth=1)
             plt.title(k)
             plt.legend()
+            plt.tight_layout()
+            if save_plots:
+                plt.savefig(plotdir+'/%s.pdf'%(k), bbox_inches='tight')
             plt.show()
         else:
             #print(k+' no values')
