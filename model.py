@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import h5py
 import os
 
+import keras.backend as K
+
 
 def get_layers(model):
     """Collects all layers in a model and its nested models."""
