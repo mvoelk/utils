@@ -57,7 +57,7 @@ def rot2euler(R, s=1):
 
 def euler2rot2(angles, axes='xyz', fixed=False):
     '''Converts arbitrary Euler Angles to Rotation Matrix
-    
+
         V-Rep: 'xyz', False
         roll-pitch-yaw: 'xyz', True
     '''
@@ -65,6 +65,40 @@ def euler2rot2(angles, axes='xyz', fixed=False):
     if fixed:
         Rs.reverse()
     return np.linalg.multi_dot(Rs)
+
+def rot2euler2(R, axes='xyz', fixed=False, s=1):
+    '''Converts a Rotation Matrix to Euler Angles
+
+        V-Rep: 'xyz', False
+        roll-pitch-yaw: 'xyz', True
+    '''
+    # for general solution see
+    # https://github.com/ros/geometry/blob/noetic-devel/tf/src/tf/transformations.py#L1031
+
+    eps = 1e-6
+    if axes == 'xyz' and fixed:
+        sy = np.sqrt(R[0,0] * R[0,0] + R[1,0] * R[1,0])
+        if sy < eps: # singular
+            return np.array([
+                np.arctan2(-R[1,2], R[1,1]),
+                np.arctan2(-R[2,0], sy),
+                0,
+            ])
+        else:
+            return np.array([
+                np.arctan2(R[2,1], R[2,2]),
+                np.arctan2(-R[2,0], sy),
+                np.arctan2(R[1,0], R[0,0])
+            ])
+        return np.array([x, y, z])
+    elif axes == 'xyz' and not fixed:
+        return np.array([
+            np.arctan2(-s*R[1,2], s*R[2,2]),
+            np.arctan2(R[0,2], s*np.sqrt(1-R[0,2]*R[0,2]+eps)),
+            np.arctan2(-s*R[0,1], s*R[0,0]),
+        ])
+    else:
+        return None
 
 def pose2matrix(pose):
     x, y, z, a, b, c = pose
@@ -253,7 +287,8 @@ def transform_points(T, xyz):
     xyz = T @ xyz[...,None]
     return xyz[...,:3,0]
 
-def image_to_xyz(xy_img, z, K):
+
+def image_to_xyz_perspective(xy_img, z, K):
     '''Transforms from image coordinates to 3d space.
     
     # Arguments
@@ -270,7 +305,25 @@ def image_to_xyz(xy_img, z, K):
     y = (xy_img[...,1] - cy) * z / fy
     return np.stack([x,y,z], axis=-1)
 
-def depth_to_xyz(depth, K):
+def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
+    '''Transforms from image coordinates to 3d space.
+    
+    # Arguments
+        xy_img: shape (..., n, 2)
+        z: depth, shape (..., n)
+        image_size: shape (2)
+        pixel_per_meter:
+
+    # Return
+        xyz: points in 3d space, shape (n, 3)
+    '''
+    w, h = image_size
+    x = (xy_img[...,0]-(w-1)/2) / pixel_per_meter
+    y = (xy_img[...,1]-(h-1)/2) / pixel_per_meter
+    return np.stack([x,y,z], axis=-1)
+
+
+def perspective_to_xyz(depth, K):
     '''Creates a point cloud from a depth map.
 
     # Arguments
@@ -290,6 +343,26 @@ def depth_to_xyz(depth, K):
     x = (xi - cx)*z / fx
     y = (yi - cy)*z / fy
     return np.stack([x,y,z], axis=-1)
+
+def orthographic_to_xyz(depth, pixel_per_meter=300):
+    """Creates a point cloud from an orthographic projection.
+    
+    # Arguments
+        depth: depht map, shape (h, w)
+        pixel_per_meter:
+    
+    # Return
+        xyz: points in 3d space, shape (h, w, 3)
+    """
+    h, w = depth.shape
+    z = np.float32(depth)
+    rx, ry = np.arange(w), np.arange(h)
+    xi = np.repeat(rx[None,:],h,axis=0)
+    yi = np.repeat(ry[:,None],w,axis=1)
+    x = (xi-(w-1)/2) / pixel_per_meter
+    y = (yi-(h-1)/2) / pixel_per_meter
+    return np.stack([x,y,z], axis=-1)
+
 
 def xyz_to_orthographic(xyz, rgb=None, image_size=(512, 320), pixel_per_meter=300):
     """Creates an orthographic projection from a point cloud.
@@ -340,7 +413,7 @@ def perspective_to_orthographic(depth, rgb=None, K=np.eye(3), image_size=(512, 3
         K: camera matrix, shape (3, 3)
         image_size: shape (2)
         pixel_per_meter: 
-        
+    
     # Return
         depth: orthograpic projekted depth map, shape (h, w)
         rgb: orthograpic projekted rgb image, shape (h, w, 3)
@@ -351,7 +424,7 @@ def perspective_to_orthographic(depth, rgb=None, K=np.eye(3), image_size=(512, 3
 def bilinear_interpolate_points(img, xy):
     """
     # Arguments
-        img: array of shape (m, n) or (m, n, c)
+        img: array of shape (h, w) or (h, w, c)
         xy: array of shape (k, 2)
     
     # Return
@@ -419,5 +492,9 @@ def hand_eye_calibration(A, B):
 
     return X, Z
 
+
+# TODO: remove
+depth_to_xyz = perspective_to_xyz
+image_to_xyz = image_to_xyz_perspective
 
 
