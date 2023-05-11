@@ -163,7 +163,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         Different batch size leads to different epoch length.
     """
     
-    loss_terms = {'loss', 'error', 'abs', 'dist'}
+    loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if save_plots:
@@ -208,8 +208,8 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
     
     if names is None:
-        print(all_names)
         names = all_names.difference({'time', 'epoch', 'iteration'})
+        print(names)
     
     # reduce epoch ticks
     max_ticks = 20
@@ -296,7 +296,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
 
 def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validation=False, save_plots=False):
 
-    loss_terms = {'loss', 'error', 'abs', 'dist'}
+    loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if save_plots:
@@ -333,9 +333,9 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
     epoch = np.array(max_df['epoch'])
     
     if names is None:
-        print(all_names)
         names = {n for n in all_names if not n.startswith('val_')}
         names = names.difference({'time', 'epoch'})
+        print(names)
     
     colorgen = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
     colors = [next(colorgen) for i in range(len(dfs))]

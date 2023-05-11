@@ -7,6 +7,11 @@ Code was taken from https://github.com/mvoelk/utils
 import re, random
 
 
+class Object():
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
 def print_json_tree(json):
     def recurse(d, o):
         pad = '  '
