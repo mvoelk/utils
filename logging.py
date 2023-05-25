@@ -187,7 +187,12 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     max_df = []
     all_names = set()
     for d in log_dirs:
-        df = pd.read_csv(os.path.join('.', 'checkpoints', d, 'log.csv'))
+        csv_path = os.path.join('.', 'checkpoints', d, 'log.csv')
+        #df = pd.read_csv(csv_path)
+        try:
+            df = pd.read_csv(csv_path, engine='pyarrow', dtype='float32')
+        except:
+            df = pd.read_csv(csv_path)
         all_names.update(df.keys())
         if len(df) > len(max_df):
             max_df = df
@@ -244,20 +249,22 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             if k in df.keys():
                 if len(df[k]):
                     non_zero = True
+
+                    if np.all(np.isfinite(df[k])):
+                        if autoscale:
+                            ymax = max(ymax, np.max(df[k]))
+                            ymean = max(ymean, np.mean(df[k]))
+                        label = log_dirs[i]
+                    else:
+                        label = log_dirs[i] + ' (NaN)'
+
                     if window_length:
-                        plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=log_dirs[i])
+                        plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=label)
                         if not filtered_only:
                             plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.3)
                     else:
-                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=log_dirs[i])
+                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=label)
                     xmin, xmax = min(xmin, df['iteration'][0]), max(xmax, df['iteration'][-1])
-                    if np.all(np.isfinite(df[k])):
-                        ymax = max(ymax, np.max(df[k]))
-                        ymean = max(ymean, np.mean(df[k]))
-                    else:
-                        print(log_dirs[i]+' NaN or inf')
-        
-        ymax = min(ymax, ymean*4)
         
         if non_zero:
             plt.title(k, y=1.05)
@@ -267,6 +274,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             ax1.set_xlim(xmin, xmax)
             if autoscale:
                 k_split = k.split('_')
+                ymax = min(ymax, ymean*4)
                 if len(loss_terms.intersection(k_split)):
                     plt.ylim(0, ymax)
                 elif len(metric_terms.intersection(k_split)):
@@ -349,22 +357,24 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
             if len(df['epoch']):
                 xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
             if k in df.keys():
-                plt.plot(df['epoch'], df[k], color=colors[i], label=log_dirs[i])
                 if not len(df[k]):
                     pass
                 elif np.all(np.isfinite(df[k])):
-                    ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
+                    if autoscale:
+                        ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
+                    label = log_dirs[i]
                 else:
-                    print(log_dirs[i]+' NaN or inf')
+                    label = log_dirs[i] + ' (NaN)'
+                plt.plot(df['epoch'], df[k], color=colors[i], label=label)
+
             kv = 'val_'+k
             if not no_validation and kv in df.keys():
-                plt.plot(df['epoch'], df[kv], '--', color=colors[i])
                 if not len(df[kv]):
                     pass
                 elif np.all(np.isfinite(df[kv])):
-                    ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
-                else:
-                    print(log_dirs[i]+' NaN or inf')
+                    if autoscale:
+                        ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
+                plt.plot(df['epoch'], df[kv], '--', color=colors[i])
         
         if ymax > sys.float_info.min:
             plt.xlim(xmin, xmax)
