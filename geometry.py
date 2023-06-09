@@ -166,13 +166,42 @@ def rotz(angle):
     return np.array([[c,-s,0], [s,c,0], [0,0,1]])
 
 
+def project_vector(v1, v2):
+    """Decomposes vector v1 into an vector v1_proj_v2 parallel to v2 and an vector v1_orth_v2 orthogonal to vector v2.
+
+    # Arguments
+        v1: shape (..., 3)
+        v2: shape (..., 3)
+
+    # Return
+        v1_proj_v2: component of v1 parallel to v2, shape (..., 3)
+        v1_orth_v2: component of v1 orthogonal to v2, shape (..., 3)
+
+    """
+    v2_norm = np.linalg.norm(v2,axis=-1, keepdims=True)
+    v1_proj_v2 = np.sum(v2*v1, axis=-1, keepdims=True) / v2_norm**2 * v2
+    v1_orth_v2 = v1 - v1_proj_v2
+    return v1_proj_v2, v1_orth_v2
+
+def normalize_vector(v):
+    """
+
+    # Arguments
+        v: shape (..., 3)
+
+    # Return
+        v_normalized: shape (..., 3)
+    """
+    return v/np.linalg.norm(v,axis=-1, keepdims=True)
+
+
 def translation_error(t1, t2):
     '''Translation distance in form of the euclidean distance.
-    
+
     # Arguments
         t1: array of shape (..., 3)
         t2: array of shape (..., 3)
-        
+
     # Return
         array of shpae (...)
     '''
@@ -180,11 +209,11 @@ def translation_error(t1, t2):
 
 def rotation_error(R1, R2):
     '''Rotatation distance in form of the angle in angle-axis representation.
-    
+
     # Arguments
         R1: array of shape (..., 3, 3)
         R2: array of shape (..., 3, 3)
-    
+
     # Return
         array of shpae (...)
     '''
@@ -204,11 +233,11 @@ def rotation_error(R1, R2):
 
 def transformation_error(T1, T2):
     '''Translation and rotation distance of homogeneous matrices.
-    
+
     # Arguments
         T1: array of shape (..., 4, 4)
         T2: array of shape (..., 4, 4)
-    
+
     # Return
         array of shape (..., 2)
     '''
@@ -222,10 +251,10 @@ def transformation_error(T1, T2):
 
 def orthogonalize_matrix(R):
     '''Orthogonalizes a rotation matrix.
-    
+
     # Arguments
-        R: array of sahpe (..., 3, 4)
-    
+        R: array of sahpe (..., 3, 3)
+
     # Notes
         z-axis is prioritized
         x-axis is orthogonal projected
@@ -246,10 +275,9 @@ def orthogonalize_matrix(R):
 
     return R
 
-
 def hinv(T):
     '''Inverts a homogeneous matrix
-    
+
     # Arguments
         T: shape (..., 4, 4)
     '''
@@ -261,7 +289,7 @@ def hinv(T):
 
 def trafo(t=np.zeros(3), R=np.eye(3)):
     '''Buids a homogenious matrix
-    
+
     # Arguments
         t: shape (..., 3)
         R: shape (..., 3, 3)
@@ -290,7 +318,7 @@ def transform_points(T, xyz):
 
 def image_to_xyz_perspective(xy_img, z, K):
     '''Transforms from image coordinates to 3d space.
-    
+
     # Arguments
         xy_img: shape (..., n, 2)
         z: depth, shape (..., n)
@@ -307,7 +335,7 @@ def image_to_xyz_perspective(xy_img, z, K):
 
 def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
     '''Transforms from image coordinates to 3d space.
-    
+
     # Arguments
         xy_img: shape (..., n, 2)
         z: depth, shape (..., n)
@@ -346,11 +374,11 @@ def perspective_to_xyz(depth, K):
 
 def orthographic_to_xyz(depth, pixel_per_meter=300):
     """Creates a point cloud from an orthographic projection.
-    
+
     # Arguments
         depth: depht map, shape (h, w)
         pixel_per_meter:
-    
+
     # Return
         xyz: points in 3d space, shape (h, w, 3)
     """
@@ -366,58 +394,58 @@ def orthographic_to_xyz(depth, pixel_per_meter=300):
 
 def xyz_to_orthographic(xyz, rgb=None, image_size=(512, 320), pixel_per_meter=300):
     """Creates an orthographic projection from a point cloud.
-    
+
     # Arguments
         xyz: points in 3d space, shape (h, w, 3)
         rgb: color of points, shape (h, w, 3)
         image_size: shape (2)
         pixel_per_meter:
-    
+
     # Return
         depth: orthograpic projekted depth map, shape (h, w)
         rgb: orthograpic projekted rgb image, shape (h, w, 3)
     """
-    
+
     w, h = image_size
-    
+
     xyz = np.reshape(xyz, (-1,3))
     idxs = np.argsort(-xyz[:,2])
     x, y, z = xyz[idxs].T
-    
+
     x_img = np.int32(np.round( x * pixel_per_meter + (w-1)/2 ))
     y_img = np.int32(np.round( y * pixel_per_meter + (h-1)/2 ))
-    
+
     m = np.logical_and(
-        np.logical_and(x_img >= 0, x_img < w), 
+        np.logical_and(x_img >= 0, x_img < w),
         np.logical_and(y_img >= 0, y_img < h))
-    
+
     x_img, y_img = x_img[m], y_img[m]
-    
+
     img = np.zeros((h,w), dtype='float32')
     img[y_img,x_img] = z[m]
-    
+
     if rgb is not None:
         rgb = np.reshape(rgb, (-1,3))[idxs]
         rgb_ = np.zeros((h,w,3), dtype='float32')
         rgb_[y_img,x_img] = rgb[m]
         return img, rgb_
-    
+
     return img
 
 def perspective_to_orthographic(depth, rgb=None, K=np.eye(3), image_size=(512, 320), pixel_per_meter=300):
-    '''Creates a orthographic projection from a perspectiv depth map.
+    """Creates an orthographic projection from a perspectiv depth map.
 
     # Arguments
         depth: depht map, shape (h, w)
         rgb: color of points, shape (h, w, 3)
         K: camera matrix, shape (3, 3)
         image_size: shape (2)
-        pixel_per_meter: 
-    
+        pixel_per_meter:
+
     # Return
         depth: orthograpic projekted depth map, shape (h, w)
         rgb: orthograpic projekted rgb image, shape (h, w, 3)
-    '''
+    """
     xyz = depth_to_xyz(depth, K)
     return xyz_to_orthographic(xyz, rgb, image_size=image_size, pixel_per_meter=pixel_per_meter)
 
@@ -426,20 +454,20 @@ def bilinear_interpolate_points(img, xy):
     # Arguments
         img: array of shape (h, w) or (h, w, c)
         xy: array of shape (k, 2)
-    
+
     # Return
         fxy: array of shape (k) or (k, c)
     """
-    
+
     xy = np.float32(xy).T
     x1, y1 = np.int32(xy)
     x2, y2 = x1+1, y1+1
     dx1, dy1 = xy%1
     dx2, dy2 = 1-dx1, 1-dy1
-    
+
     if len(img.shape) == 3:
         dx1, dy1, dx2, dy2 = dx1[...,None], dy1[...,None], dx2[...,None], dy2[...,None]
-    
+
     f11 = img[y1,x1]
     f12 = img[y2,x1]
     f21 = img[y1,x2]
@@ -450,21 +478,21 @@ def bilinear_interpolate_points(img, xy):
 
 def hand_eye_calibration(A, B):
     """Hand-Eye Calibration following Shah 2013 
-    
+
     Consider the equation AX = ZB of 4x4 homogeneous transformations, 
     where n valid A_i and B_i are known and X and Z are constant but 
     unknown. We solve for X and Z.
-    
+
     # Arguments
         A: list of 4x4 homogeneous transformations
         B: list of 4x4 homogeneous transformations
-    
+
     # Return
         X: 4x4 homogeneous transformation
         Z: 4x4 homogeneous transformation
-    
+
     """
-    
+
     r = range(len(A))
 
     K = np.sum([np.kron(B[i][:3,:3], A[i][:3,:3]) for i in r], axis=0)
