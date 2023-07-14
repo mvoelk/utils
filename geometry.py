@@ -165,6 +165,16 @@ def rotz(angle):
     s, c = np.sin(angle), np.cos(angle)
     return np.array([[c,-s,0], [s,c,0], [0,0,1]])
 
+def random_quat():
+    u, v, w = np.random.uniform(0, 1, size=3)
+    r1 = np.sqrt(1.0 - u)
+    r2 = np.sqrt(u)
+    t1 = 2*np.pi * v
+    t2 = 2*np.pi * w
+    return np.array([np.cos(t2)*r2, np.sin(t1)*r1, np.cos(t1)*r1, np.sin(t2)*r2])
+
+def random_rot():
+    return quat2rot(random_quat())
 
 def project_vector(v1, v2):
     """Decomposes vector v1 into an vector v1_proj_v2 parallel to v2 and an vector v1_orth_v2 orthogonal to vector v2.
