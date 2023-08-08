@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import h5py
 import os
 
-import keras.backend as K
+from keras import backend as K
+from keras.models import Model
 
 
 def get_layers(model):
