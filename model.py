@@ -196,7 +196,7 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv1D', 'Conv2D', 'C
     plt.show()
 
 
-def plot_activation(model):
+def plot_activation(model, batch_size=32):
     # plots mean and std for all layers in a model
     
     tmp_model = Model(model.input, [l.output for l in model.layers])
@@ -204,8 +204,11 @@ def plot_activation(model):
     input_shape = model.input_shape[1:]
     num_layers = len(layer_names)
 
-    #x = np.float32(np.random.uniform(-1,1, size=[32, *input_shape]))
-    x = np.float32(np.clip(np.random.normal(size=[32, *input_shape]), -3, 3))
+    if type(model.input_shape) is tuple:
+        #x = np.float32(np.random.uniform(-1,1, size=[batch_size, *model.input_shape[1:]]))
+        x = np.float32(np.clip(np.random.normal(size=[batch_size, *model.input_shape[1:]]), -3, 3))
+    else:
+        x = [np.float32(np.clip(np.random.normal(size=[batch_size, *s[1:]]), -3, 3)) for s in model.input_shape]
     y = tmp_model(x)
 
     y_mean, y_std = [np.mean(a) for a in y], [np.std(a) for a in y]
@@ -217,7 +220,8 @@ def plot_activation(model):
     plt.grid(True); plt.gca().invert_yaxis()
     plt.show()
 
-def plot_activation_with_mask(model, sparsity=0.5):
+
+def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
     # plots mean and std for layers in PartiaConv model
     
     conv_layers = [ l for l in model.layers if l.__class__.__name__ in ['PartialConv2D', 'PartialDepthwiseConv2D', 'Lambda'] ]
@@ -230,9 +234,9 @@ def plot_activation_with_mask(model, sparsity=0.5):
     
     tmp_model = Model(model.input, outputs_x+outputs_m)
     
-    #x = np.float32(np.random.uniform(-1,1, size=[32, *input_shape]))
-    x = np.float32(np.clip(np.random.normal(size=[32, *input_shape]), -3, 3))
-    m = np.float32(np.random.binomial(1, 1-sparsity, size=[32, *input_shape]))
+    #x = np.float32(np.random.uniform(-1,1, size=[batch_size, *input_shape]))
+    x = np.float32(np.clip(np.random.normal(size=[batch_size, *input_shape]), -3, 3))
+    m = np.float32(np.random.binomial(1, 1-sparsity, size=[batch_size, *input_shape]))
     y = tmp_model([x,m])
     
     y_x, y_m = y[:num_layers], y[num_layers:]
