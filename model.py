@@ -196,7 +196,7 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv1D', 'Conv2D', 'C
     plt.show()
 
 
-def plot_activation(model, batch_size=32):
+def plot_activation(model, batch_size=32, distribution=False, ignoere_zeros=False):
     # plots mean and std for all layers in a model
     
     tmp_model = Model(model.input, [l.output for l in model.layers])
@@ -209,16 +209,30 @@ def plot_activation(model, batch_size=32):
         x = np.float32(np.clip(np.random.normal(size=[batch_size, *model.input_shape[1:]]), -3, 3))
     else:
         x = [np.float32(np.clip(np.random.normal(size=[batch_size, *s[1:]]), -3, 3)) for s in model.input_shape]
+    
     y = tmp_model(x)
-
-    y_mean, y_std = [np.mean(a) for a in y], [np.std(a) for a in y]
-    x = np.arange(num_layers)
-
-    plt.figure(figsize=(6, 0.4+0.2*num_layers))
-    plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
-    plt.yticks(x, layer_names, rotation=0)
-    plt.grid(True); plt.gca().invert_yaxis()
-    plt.show()
+    y = [np.array(a).flatten() for a in y]
+    
+    if ignoere_zeros:
+        y = [a[a!=0.0] for a in y]
+    
+    if distribution:
+        plt.figure(figsize=(6, 1.4*num_layers))
+        for i in range(num_layers):
+            plt.subplot(num_layers, 1, i+1)
+            plt.hist(y[i], bins=100)
+            plt.title(layer_names[i])
+        plt.tight_layout()
+        plt.show()
+    else:
+        y_mean, y_std = [np.mean(a) for a in y], [np.std(a) for a in y]
+        x = np.arange(num_layers)
+        
+        plt.figure(figsize=(6, 0.4+0.2*num_layers))
+        plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
+        plt.yticks(x, layer_names, rotation=0)
+        plt.grid(True); plt.gca().invert_yaxis()
+        plt.show()
 
 
 def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
