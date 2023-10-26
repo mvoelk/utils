@@ -1,22 +1,20 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2022 Markus Völk
+Copyright © 2015 - 2023 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
 
 import numpy as np
 
-eps = 1e-8
-
 
 def rot2quat(R, xyzw=False):
     '''Convets a Rotation Matrix to a Unit Quaternion'''
-    qr = np.sqrt(1+R[0,0]+R[1,1]+R[2,2]+eps) / 2
+    qr = np.sqrt(max(1+R[0,0]+R[1,1]+R[2,2],0.0)) / 2
     # 24.83 µs
-    qi = np.copysign(1/2 * np.sqrt(1+R[0,0]-R[1,1]-R[2,2]+eps), R[2,1]-R[1,2])
-    qj = np.copysign(1/2 * np.sqrt(1-R[0,0]+R[1,1]-R[2,2]+eps), R[0,2]-R[2,0])
-    qk = np.copysign(1/2 * np.sqrt(1-R[0,0]-R[1,1]+R[2,2]+eps), R[1,0]-R[0,1])
+    qi = np.copysign(1/2 * np.sqrt(max(1+R[0,0]-R[1,1]-R[2,2],0.0)), R[2,1]-R[1,2])
+    qj = np.copysign(1/2 * np.sqrt(max(1-R[0,0]+R[1,1]-R[2,2],0.0)), R[0,2]-R[2,0])
+    qk = np.copysign(1/2 * np.sqrt(max(1-R[0,0]-R[1,1]+R[2,2],0.0)), R[1,0]-R[0,1])
     # 14.53 µs, faster but larger error
     #qi = (R[2,1] - R[1,2]) / (4*qr)
     #qj = (R[0,2] - R[2,0]) / (4*qr)
@@ -51,7 +49,7 @@ def euler2rot(angles):
 def rot2euler(R, s=1):
     '''Convert Rotation Matrix to Euler Angles (V-Rep convention)'''
     a = np.arctan2(-s*R[1,2], s*R[2,2])
-    b = np.arctan2(R[0,2], s*np.sqrt(1-R[0,2]*R[0,2]+eps))
+    b = np.arctan2(R[0,2], s*np.sqrt(max(1-R[0,2]*R[0,2], 0.0)))
     g = np.arctan2(-s*R[0,1], s*R[0,0])
     return np.array([a,b,g])
 
@@ -77,7 +75,7 @@ def rot2euler2(R, axes='xyz', fixed=False, s=1):
 
     eps = 1e-6
     if axes == 'xyz' and fixed:
-        sy = np.sqrt(R[0,0] * R[0,0] + R[1,0] * R[1,0])
+        sy = np.sqrt(max(R[0,0]*R[0,0]+R[1,0]*R[1,0], 0.0))
         if sy < eps: # singular
             return np.array([
                 np.arctan2(-R[1,2], R[1,1]),
@@ -94,7 +92,7 @@ def rot2euler2(R, axes='xyz', fixed=False, s=1):
     elif axes == 'xyz' and not fixed:
         return np.array([
             np.arctan2(-s*R[1,2], s*R[2,2]),
-            np.arctan2(R[0,2], s*np.sqrt(1-R[0,2]*R[0,2]+eps)),
+            np.arctan2(R[0,2], s*np.sqrt(max(1-R[0,2]*R[0,2], 0.0))),
             np.arctan2(-s*R[0,1], s*R[0,0]),
         ])
     else:
@@ -112,8 +110,9 @@ def matrix2pos(T):
     return np.array([x,y,z,a,b,c])
 
 def rot2axisangle(R):
+    eps = 1e-8
     arg = (R[0,0]+R[1,1]+R[2,2]-1)/2
-    #arg = np.clip(arg, -1, 1)
+    arg = np.clip(arg, -1, 1)
     a = np.arccos(arg)
     if np.abs(a) > eps:
         x = R[2,1]-R[1,2]
@@ -123,7 +122,7 @@ def rot2axisangle(R):
         v = v / np.sqrt(np.dot(v,v))
         return v, a
     else:
-        return np.array([0,0,0]), 0
+        return np.array([0,0,0], dtype=R.dtype), np.float64(0)
 
 def axisangle2rot(v, a):
     x, y, z = v
@@ -314,6 +313,24 @@ def to4x4(M):
     z = np.zeros_like(M[...,:1,:])
     z[...,-1] = 1
     return np.concatenate([M,z], axis=-2)
+
+def print_rot_info(R):
+    '''Prints some properties of a rotation matrix.
+        R@R.T                 should be I
+        norm(R, axis=-2)      should be all 1
+        norm(R, axis=-1)      should be all 1
+        det(R)                should be +1
+
+    # Arguments
+        R: shape (3, 3) or (4, 4)
+    '''
+    R = R[:3,:3]
+    with np.printoptions(precision=6, suppress=True):
+        print()
+        print(R@R.T)
+        print(np.linalg.norm(R, axis=-2))
+        print(np.linalg.norm(R, axis=-1))
+        print('%.6f'%np.linalg.det(R))
 
 def transform_points(T, xyz):
     '''

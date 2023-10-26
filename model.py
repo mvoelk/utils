@@ -94,7 +94,7 @@ def freeze_layers(model, trainable_conv_layers=0, trainable_bn_layers=0):
 
 def calc_memory_usage(model, batch_size=1):
     """Compute the memory usage of a keras modell.
-    
+
     # Arguments
         model: Keras model.
         batch_size: Batch size used for training.
@@ -151,9 +151,9 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv1D', 'Conv2D', 'C
     layers = [l for l in layers if l.__class__.__name__ in layer_types]
     names = [l.name for l in layers]
     y = range(len(names))
-    
-    plt.figure(figsize=[12,max(len(y)//4,1)])
-    
+
+    plt.figure(figsize=(12, 0.2+len(y)/4))
+
     offset = np.zeros(len(layers), dtype=int)
     legend = []
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
