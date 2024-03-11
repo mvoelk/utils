@@ -387,6 +387,7 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
                     plt.ylim(np.floor(ymin*10)/10, np.ceil(ymax*10)/10)
                     #plt.hlines([0.5,0.8,0.9], xmin, xmax, linestyles='-.', linewidth=1)
             plt.title(k)
+            plt.grid()
             plt.legend()
             plt.tight_layout()
             if save_plots:

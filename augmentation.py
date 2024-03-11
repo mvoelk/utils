@@ -178,7 +178,7 @@ def blur_batch_mask(masks, kernel_sizes=[1,3,5,7,9,11]):
 
 
 
-def get_random_box(img_shape):
+def random_box(img_shape):
     h, w = img_shape
     while True:
         x_min, x_max = np.sort(np.random.randint(0, w, 2))
@@ -191,7 +191,7 @@ def get_random_box(img_shape):
     return x_min, y_min, x_max, y_max
 
 def poly_mask(img_shape):
-    x_min, y_min, x_max, y_max = get_random_box(img_shape)
+    x_min, y_min, x_max, y_max = random_box(img_shape)
     n = np.random.randint(3, 6)
     x = np.random.randint(x_min, x_max, (1,n))
     y = np.random.randint(y_min, y_max, (1,n))
@@ -200,13 +200,13 @@ def poly_mask(img_shape):
     m = cv2.fillPoly(m, pts, 1)
     return m
 
-def random_ellipses_mask(img_shape, r_max=5):
+def ellipses_mask(img_shape, r_max=5):
     h, w = img_shape
     kx = 1 + np.random.randint(0, int(r_max)) * 2
     ky = 1 + np.random.randint(0, int(r_max)) * 2
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kx,ky))
-    x_min, y_min, x_max, y_max = get_random_box((h,w))
-    #x_min, y_min, x_max, y_max = get_random_box((h-ky,w-kx))
+    x_min, y_min, x_max, y_max = random_box((h,w))
+    #x_min, y_min, x_max, y_max = random_box((h-ky,w-kx))
     #x_min, y_min, x_max, y_max = x_min+kx//2, y_min+ky//2, x_max+kx//2, y_max+ky//2
     dx, dy = x_max-x_min, y_max-y_min
     m = np.zeros(img_shape, np.uint8)
@@ -229,8 +229,8 @@ def random_corruption_mask(img_shape):
     img1 = np.logical_or(m1, np.logical_and(m2, m3))
     img = img1
 
-    m1 = random_ellipses_mask(img_shape, r_max=h//20)
-    m2 = random_ellipses_mask(img_shape, r_max=h//10)
+    m1 = ellipses_mask(img_shape, r_max=h//20)
+    m2 = ellipses_mask(img_shape, r_max=h//10)
     m3 = noise_mask(img_shape)
     img2 = np.logical_or(m1, np.logical_and(m2, m3))
     img = np.logical_or(img, img2)

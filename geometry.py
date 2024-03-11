@@ -6,6 +6,7 @@ Code was taken from https://github.com/mvoelk/utils
 
 
 import numpy as np
+import cv2
 
 
 def rot2quat(R, xyzw=False):
@@ -475,6 +476,30 @@ def perspective_to_orthographic(depth, rgb=None, K=np.eye(3), image_size=(512, 3
     """
     xyz = depth_to_xyz(depth, K)
     return xyz_to_orthographic(xyz, rgb, image_size=image_size, pixel_per_meter=pixel_per_meter)
+
+
+def crop_and_scale_perspective(img, crop_xy=[0,0], crop_wh=[1000000,1000000], scale=1.0):
+    '''Crops and Scales RGB and depth images or transform the camera matrix K.
+    '''
+    if img.shape == (3,3):
+        K = np.copy(img)
+        K[:2,2] -= crop_xy
+        K[:2,:] *= scale
+        return K
+    else:
+        (x,y), (w,h) = crop_xy, crop_wh
+        img = img[y:y+h,x:x+w]
+        h1,w1 = img.shape[:2]
+        h2,w2 = scale*h1, scale*w1
+        assert h2.is_integer(), w2.is_integer()
+        if len(img.shape) == 2 or img.shape[2] == 1:
+            # nearset interpolation for depth maps
+            interpolation = cv2.INTER_NEAREST
+        else:
+            interpolation = cv2.INTER_CUBIC
+        img = cv2.resize(img, (int(w2), int(h2)), interpolation=interpolation)
+        return img
+
 
 def bilinear_interpolate_points(img, xy):
     """
