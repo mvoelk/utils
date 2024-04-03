@@ -204,8 +204,8 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         df = {k: np.array(df[k]) for k in df.keys()}
         dfs.append(df)
     
-    iteration = max_df['iteration']
-    epoch = max_df['epoch']
+    iteration = np.int32(max_df['iteration'])
+    epoch = np.int32(max_df['epoch'])
     idx = np.argwhere(np.diff(epoch))[:,0]
     
     if 'time' in max_df.keys() and len(idx) > 1:
@@ -338,8 +338,6 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
         df = {k: np.array(df[k]) for k in df.keys()}
         dfs.append(df)
     
-    epoch = np.array(max_df['epoch'])
-    
     if names is None:
         names = {n for n in all_names if not n.startswith('val_')}
         names = names.difference({'time', 'epoch'})
@@ -356,27 +354,27 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
         for i, df in enumerate(dfs):
             if len(df['epoch']):
                 xmin, xmax = min(xmin, df['epoch'][0]), max(xmax, df['epoch'][-1])
-            if k in df.keys():
-                if not len(df[k]):
-                    pass
-                elif np.all(np.isfinite(df[k])):
+            if k in df.keys() and len(df[k]):
+                if np.all(np.isfinite(df[k])):
                     if autoscale:
                         ymin, ymax = min(ymin, np.min(df[k])), max(ymax, np.max(df[k]))
                     label = log_dirs[i]
                 else:
                     label = log_dirs[i] + ' (NaN)'
-                plt.plot(df['epoch'], df[k], color=colors[i], label=label)
+                plt.plot(df['epoch'], df[k], '-o', color=colors[i], label=label, markersize=5)
 
             kv = 'val_'+k
-            if not no_validation and kv in df.keys():
-                if not len(df[kv]):
-                    pass
-                elif np.all(np.isfinite(df[kv])):
+            if not no_validation and kv in df.keys() and len(df[kv]):
+                if np.all(np.isfinite(df[kv])):
                     if autoscale:
                         ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
-                plt.plot(df['epoch'], df[kv], '--', color=colors[i])
+                plt.plot(df['epoch'], df[kv], '--o', color=colors[i], markersize=5)
         
         if ymax > sys.float_info.min:
+            epoch = list(range(0,xmax+1))
+            ax = plt.gca()
+            ax.set_xticks(epoch)
+            ax.set_xticklabels(epoch)
             plt.xlim(xmin, xmax)
             if autoscale:
                 k_split = k.split('_')

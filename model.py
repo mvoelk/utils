@@ -199,7 +199,9 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv1D', 'Conv2D', 'C
 def plot_activation(model, batch_size=32, distribution=False, ignoere_zeros=False):
     # plots mean and std for all layers in a model
     
-    tmp_model = Model(model.input, [l.output for l in model.layers])
+    #outputs = [l.output for l in model.layers]
+    outputs = [l.output[0] if type(l.output) is list else l.output for l in model.layers]
+    tmp_model = Model(model.input, outputs)
     layer_names = [l.name for l in model.layers]
     input_shape = model.input_shape[1:]
     num_layers = len(layer_names)
