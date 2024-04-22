@@ -145,7 +145,9 @@ def count_parameters(model):
     return trainable_count + non_trainable_count
 
 
-def plot_parameter_statistic(model, layer_types=['Dense', 'Conv1D', 'Conv2D', 'Conv3D'], trainable=True, non_trainable=True, outputs=False, channels=False):
+def plot_parameter_statistic(model,
+                             layer_types=['Dense', 'Conv1D', 'Conv2D', 'Conv3D', 'Conv1DTranspose', 'Conv2DTranspose', 'Conv3DTranspose'],
+                             trainable=True, non_trainable=True, outputs=False, channels=False):
     layer_types = [l.__name__ if type(l) == type else l for l in layer_types]
     layers = get_layers(model)
     layers = [l for l in layers if l.__class__.__name__ in layer_types]
@@ -187,6 +189,7 @@ def plot_parameter_statistic(model, layer_types=['Dense', 'Conv1D', 'Conv2D', 'C
         offset += np.array(counts_channels, dtype=int)
         legend.append('channels')
     
+    plt.grid()
     plt.yticks(y, names)
     plt.ylim(y[0]-1, y[-1]+1)
     ax = plt.gca()
@@ -233,7 +236,9 @@ def plot_activation(model, batch_size=32, distribution=False, ignoere_zeros=Fals
         plt.figure(figsize=(6, 0.4+0.2*num_layers))
         plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
         plt.yticks(x, layer_names, rotation=0)
-        plt.grid(True); plt.gca().invert_yaxis()
+        plt.grid(True)
+        ax = plt.gca()
+        ax.invert_yaxis()
         plt.show()
 
 
@@ -268,17 +273,23 @@ def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
     plt.subplot(131); plt.title('x')
     plt.errorbar(y_x_mean, x, xerr=y_x_std, fmt='o')
     plt.yticks(x, layer_names, rotation=0)
-    plt.grid(True); plt.gca().invert_yaxis()
+    plt.grid(True)
+    ax = plt.gca()
+    ax.invert_yaxis()
     
     plt.subplot(132); plt.title('xm')
     plt.errorbar(y_xm_mean, x, xerr=y_xm_std, fmt='o')
     plt.yticks(x, [])
-    plt.grid(True); plt.gca().invert_yaxis()
+    plt.grid(True)
+    ax = plt.gca()
+    ax.invert_yaxis()
     
     plt.subplot(133); plt.title('m')
     plt.errorbar(y_m_mean, x, xerr=y_m_std, fmt='o')
     plt.yticks(x, [])
-    plt.grid(True); plt.gca().invert_yaxis()
+    plt.grid(True)
+    ax = plt.gca()
+    ax.invert_yaxis()
     
     plt.tight_layout()
     plt.show()

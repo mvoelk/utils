@@ -7,7 +7,7 @@ Code was taken from https://github.com/mvoelk/utils
 
 import numpy as np
 
-from utils.geometry import rot2quat, euler2rot2
+from utils.geometry import rot2quat, euler2rot2, rotx, roty, rotz
 
 from pythreejs import Object3D, AxesHelper, BufferAttribute, Points, Mesh, Shape, Group, LineSegments2
 from pythreejs import BufferGeometry, BoxGeometry, ShapeGeometry, LineSegmentsGeometry, CylinderGeometry
@@ -16,15 +16,17 @@ from pythreejs import LineMaterial, PointsMaterial, MeshBasicMaterial, MeshPhong
 
 astuple = lambda M: tuple(np.round(np.reshape(M, (-1,)), 6))
 
+random_color = lambda : '#%02x%02x%02x'%tuple(np.random.randint(0,256, size=3))
 
-def new_arrow(l=0.1, r=0.003, r2=0.006, l2=0.012, color='#ff0000'):
+
+def new_arrow(l=0.1, r=0.003, r2=0.006, l2=0.012, color='#ff0000', segments=32):
     material = MeshBasicMaterial(color=color)
 
-    shaft_geometry = CylinderGeometry(r, r, l-l2, 32)
+    shaft_geometry = CylinderGeometry(r, r, l-l2, segments)
     shaft = Mesh(shaft_geometry, material)
     shaft.position = (0,(l-l2)/2,0)
 
-    head_geometry = CylinderGeometry(0, r2, l2, 32)
+    head_geometry = CylinderGeometry(0, r2, l2, segments)
     head = Mesh(head_geometry, material)
     head.position = (0,l-l2/2,0)
 
@@ -34,18 +36,21 @@ def new_arrow(l=0.1, r=0.003, r2=0.006, l2=0.012, color='#ff0000'):
 
     return arrow
 
-def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003):
+def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003, segments=16):
 
     if T is not None:
         p, R = T[:3,3], T[:3,:3]
 
-    arrow_x = new_arrow(l, r, 2*r, 4*r, color='#ff0000')
-    arrow_y = new_arrow(l, r, 2*r, 4*r, color='#00ff00')
-    arrow_z = new_arrow(l, r, 2*r, 4*r, color='#0000ff')
+    arrow_x = new_arrow(l, r, 2*r, 4*r, color='#ff0000', segments=segments)
+    arrow_y = new_arrow(l, r, 2*r, 4*r, color='#00ff00', segments=segments)
+    arrow_z = new_arrow(l, r, 2*r, 4*r, color='#0000ff', segments=segments)
 
-    arrow_x.rotation = (0,0,-np.pi/2, 'XYZ')
-    arrow_y.rotation = (0,0,0, 'XYZ')
-    arrow_z.rotation = (np.pi/2,0,0, 'XYZ')
+    #arrow_x.rotation = (0,0,-np.pi/2, 'XYZ')
+    #arrow_y.rotation = (0,0,0, 'XYZ')
+    #arrow_z.rotation = (np.pi/2,0,0, 'XYZ')
+    arrow_x.quaternion = astuple(rot2quat(rotz(-np.pi/2), True))
+    arrow_y.quaternion = astuple(rot2quat(roty(0), True))
+    arrow_z.quaternion = astuple(rot2quat(rotx(np.pi/2), True))
 
     axes = Object3D()
     axes.add([arrow_x, arrow_y, arrow_z])
@@ -77,7 +82,7 @@ def new_frame(T=None, p=np.zeros(3), R=np.eye(3), frame_size=0.05):
     return frame
 
 
-def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, color='#ff0000'):
+def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, color='#ff0000', segments=8):
     if T is not None:
         p, R = T[:3,3], T[:3,:3]
     
@@ -89,33 +94,36 @@ def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, col
     
     box = Object3D()
     
-    geometry_h = CylinderGeometry(d, d, h, 32)
+    geometry_h = CylinderGeometry(d, d, h, segments)
     mesh_h = Object3D()
     for pm in [(0,-h/2,0), (s,-h/2,0), (0,-h/2,l), (s,-h/2,l)]:
         mesh = Mesh(geometry_h, material)
         mesh.position = pm
         mesh_h.add(mesh)
-    mesh_h.rotation = (-np.pi/2,0,0, 'XYZ')
+    #mesh_h.rotation = (-np.pi/2,0,0, 'XYZ')
+    mesh_h.quaternion = astuple(rot2quat(rotx(-np.pi/2), True))
     mesh_h.position = pos
     box.add(mesh_h)
 
-    geometry_s = CylinderGeometry(d, d, s, 32)
+    geometry_s = CylinderGeometry(d, d, s, segments)
     mesh_s = Object3D()
     for pm in [(0,s/2,0), (-l,s/2,0), (0,s/2,h), (-l,s/2,h)]:
         mesh = Mesh(geometry_s, material)
         mesh.position = pm
         mesh_s.add(mesh)
-    mesh_s.rotation = (0,0,-np.pi/2, 'XYZ')
+    #mesh_s.rotation = (0,0,-np.pi/2, 'XYZ')
+    mesh_s.quaternion = astuple(rot2quat(rotz(-np.pi/2), True))
     mesh_s.position = pos
     box.add(mesh_s)
     
-    geometry_l = CylinderGeometry(d, d, l, 32)
+    geometry_l = CylinderGeometry(d, d, l, segments)
     mesh_l = Object3D()
     for pm in [(0,l/2,0), (s,l/2,0), (0,l/2,h), (s,l/2,h)]:
         mesh = Mesh(geometry_l, material)
         mesh.position = pm
         mesh_l.add(mesh)
     #mesh_l.rotation = (0,0,0, 'XYZ')
+    #mesh_l.quaternion = astuple(rot2quat(rotx(0), True))
     mesh_l.position = pos
     box.add(mesh_l)
     
@@ -142,4 +150,3 @@ def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
     frame.position = astuple(p)
     frame.quaternion = astuple(rot2quat(R, True))
     return frame
-
