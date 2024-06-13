@@ -8,76 +8,110 @@ from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
 
-class AugmentationUtility(object):
-    def __init__(self,
-            saturation_var=0.25,
-            brightness_var=0.25,
-            contrast_var=0.5,
-            lighting_std=0.5,
-            blur_kernel_sizes=(3,5),
-            color_std=12.75):
+# TODO: check saturation, brightness, contrast, lighting
+
+def grayscale(rgb):
+    rgb = rgb.dot([0.299, 0.587, 0.114])
+    return np.uint8(rgb)
+
+def saturation(rgb, var=0.5):
+    gray = grayscale(rgb)
+    alpha = 2 * np.random.uniform() * var + (1 - var)
+    rgb = rgb * alpha + (1 - alpha) * gray[:,:,None]
+    return np.uint8(np.clip(rgb, 0, 255))
+
+def brightness(rgb, var=0.5):
+    alpha = 2 * np.random.uniform() * var + (1 - var)
+    rgb = rgb * alpha
+    return np.uint8(np.clip(rgb, 0, 255))
+
+def contrast(rgb, var=0.5):
+    gs = grayscale(rgb).mean() * np.ones_like(rgb)
+    alpha = 2 * np.random.uniform() * var + (1 - var)
+    rgb = rgb * alpha + (1 - alpha) * gs
+    return np.uint8(np.clip(rgb, 0, 255))
+
+def lighting(img, std=0.5):
+    cov = np.cov(img.reshape(-1, 3) / 255.0, rowvar=False)
+    eigval, eigvec = np.linalg.eigh(cov)
+    noise = np.random.normal(0, std, 3)
+    noise = eigvec.dot(eigval * noise) * 255
+    img = img + noise
+    return np.uint8(np.clip(img, 0, 255))
+
+def noise(img, scale=40):
+    #noise = np.random.exponential(scale, img.shape) * np.random.randint(-1,2, img.shape)
+    noise = np.random.normal(0, scale, img.shape)
+    img = img + noise
+    return np.uint8(np.clip(img, 0, 255))
+
+def blur(img, kernel_size=21):
+    img = cv2.GaussianBlur(img,(kernel_size,kernel_size),0)
+    return np.uint8(np.clip(img, 0, 255))
+
+def color_shift(img, std=64):
+    img = img + np.random.normal(0, std, 3)
+    return np.uint8(np.clip(img, 0, 255))
+
+def horizontal_flip(img):
+    img = img[:,::-1]
+    return img
+    #y[:,(0,2)] = 1 - y[:,(2,0)]
+    #return img, y
+
+def vertical_flip(img):
+    img = img[::-1,:]
+    return img
+    #y[:,(1,3)] = 1 - y[:,(3,1)]
+    #return img, y
+
+
+class AugmentationUtility:
+    """
+    # Notes
+        All augmentations work on uint8 rgb images
+    """
+    def __init__(self, num_max_augmentations=3,
+            max_saturation_var=0.5,
+            max_brightness_var=0.5,
+            max_contrast_var=0.5,
+            max_lighting_std=0.5,
+            max_blur_kernel_size=31,
+            max_noise_scale=60.0,
+            max_color_std=128):
 
         self.__dict__.update(locals())
-
-    def grayscale(self, rgb):
-        return rgb.dot([0.299, 0.587, 0.114])
-
+    
     def saturation(self, rgb):
-        gs = self.grayscale(rgb)
-        alpha = 2 * np.random.random() * self.saturation_var + (1 - self.saturation_var)
-        rgb = rgb * alpha + (1 - alpha) * gs[:,:,None]
-        return np.clip(rgb, 0, 255)
+        return saturation(rgb, np.random.uniform(0,self.max_saturation_var))
 
     def brightness(self, rgb):
-        alpha = 2 * np.random.random() * self.brightness_var + (1 - self.saturation_var)
-        rgb = rgb * alpha
-        return np.clip(rgb, 0, 255)
+        return brightness(img, np.random.uniform(0,self.max_brightness_var))
 
     def contrast(self, rgb):
-        gs = self.grayscale(rgb).mean() * np.ones_like(rgb)
-        alpha = 2 * np.random.random() * self.contrast_var + (1 - self.contrast_var)
-        rgb = rgb * alpha + (1 - alpha) * gs
-        return np.clip(rgb, 0, 255)
+        return contrast(img, np.random.uniform(0,self.max_contrast_var))
 
     def lighting(self, img):
-        cov = np.cov(img.reshape(-1, 3) / 255.0, rowvar=False)
-        eigval, eigvec = np.linalg.eigh(cov)
-        noise = np.random.randn(3) * self.lighting_std
-        noise = eigvec.dot(eigval * noise) * 255
-        img = img + noise
-        return np.clip(img, 0, 255)
+        return lighting(img, np.random.uniform(0,self.max_lighting_std))
 
     def noise(self, img):
-        img_size = img.shape[:2]
-        scale = np.random.randint(8)
-        noise = np.array(np.random.exponential(scale, img_size), dtype=np.int) * np.random.randint(-1,2, size=img_size)
-        #noise = np.array(np.random.normal(0, scale, img_size), dtype=np.int)
-        noise = np.repeat(noise[:,:,None], 3, axis=2)
-        img = img + noise
-        return np.clip(img, 0, 255)
+        return noise(img, np.random.uniform(0,self.max_noise_scale))
 
     def blur(self, img):
-        k = np.random.choice(self.blur_kernel_sizes)
-        img = cv2.GaussianBlur(img,(k,k),0)
-        return np.clip(img, 0, 255)
+        kernel_sizes = np.arange(1, self.max_blur_kernel_size+1, 2)
+        return blur(img, np.random.choice(kernel_sizes))
 
     def color(self, img):
-        # color shift
-        #img = img + np.random.randint(48, size=(3)) - 24
-        img = img + np.random.randn(3) * self.color_std
-        return np.clip(img, 0, 255)
+        return color_shift(img, np.random.uniform(0, self.max_color_std))
     
     def horizontal_flip(self, img):
-        img = img[:,::-1]
-        y[:,(0,2)] = 1 - y[:,(2,0)]
-        return img, y
+        return horizontal_flip(img)
     
-    def vertical_flip(self, img, y):
-        img = img[::-1,:]
-        y[:,(1,3)] = 1 - y[:,(3,1)]
-        return img, y
+    def vertical_flip(self, img):
+        return vertical_flip(img)
 
     def augment(self, img):
+        num_augmentations = np.random.randint(self.num_max_augmentations)+1
         for f in random.sample([
             self.noise,
             self.lighting,
@@ -86,7 +120,7 @@ class AugmentationUtility(object):
             self.saturation,
             self.blur,
             self.color,
-        ], 3): img = f(img)
+        ], num_augmentations): img = f(img)
         return img
 
 
