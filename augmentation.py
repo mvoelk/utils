@@ -192,7 +192,7 @@ def random_box(img_shape):
 
 def poly_mask(img_shape):
     x_min, y_min, x_max, y_max = random_box(img_shape)
-    n = np.random.randint(3, 6)
+    n = np.random.randint(3, 9)
     x = np.random.randint(x_min, x_max, (1,n))
     y = np.random.randint(y_min, y_max, (1,n))
     pts = np.stack([x,y], axis=-1)
@@ -218,28 +218,65 @@ def ellipses_mask(img_shape, r_max=5):
 
 def random_corruption_mask(img_shape):
     h, w = img_shape
-    
+
     def noise_mask(img_shape, p_max=1.0):
         m = np.random.binomial(1, np.random.uniform(0, p_max), size=img_shape)
         return m
-    
+
     m1 = poly_mask(img_shape)
     m2 = poly_mask(img_shape)
     m3 = noise_mask(img_shape)
     img1 = np.logical_or(m1, np.logical_and(m2, m3))
-    img = img1
+    m = img1
 
     m1 = ellipses_mask(img_shape, r_max=h//20)
     m2 = ellipses_mask(img_shape, r_max=h//10)
     m3 = noise_mask(img_shape)
     img2 = np.logical_or(m1, np.logical_and(m2, m3))
-    img = np.logical_or(img, img2)
-    
-    m4 = noise_mask(img_shape, 0.05)
-    img = np.logical_or(img, m4)
-    
-    return np.logical_not(img)
+    m = np.logical_or(m, img2)
 
+    m4 = noise_mask(img_shape, 0.05)
+    m = np.logical_or(m, m4)
+
+    m = np.roll(m, np.random.randint(h), 0)
+    m = np.roll(m, np.random.randint(w), 1)
+
+    return ~m
+
+
+def random_corruption_mask2(img_shape):
+    h, w = img_shape
+
+    def noise_mask(img_shape, p_max=1.0):
+        m = np.random.binomial(1, np.random.uniform(0, p_max), size=img_shape)
+        return m
+
+    def get_mask(img_shape):
+        m1 = poly_mask(img_shape)
+        m1 = np.uint8(m1)
+        k1,k2 = np.random.choice([3,5,7,9,11,13,15,17,19,21,23,25,27,29], size=2)
+        m1 = cv2.morphologyEx(m1, cv2.MORPH_DILATE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(k2,k2)))
+        m1 = cv2.morphologyEx(m1, cv2.MORPH_ERODE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(k1,k1)))
+        return m1
+
+    masks = []
+    for i in range(6):
+        m1 = get_mask(img_shape)
+        if np.random.uniform() < 0.3:
+            m3 = noise_mask(img_shape, 0.2)
+            m3 = ~np.bool8(m3)
+            m1 = np.logical_and(m1, m3)
+        masks.append(m1)
+
+    if np.random.uniform() < 0.2:
+        masks.append(noise_mask(img_shape, 0.9))
+
+    m = reduce(np.logical_or, masks)
+
+    m = np.roll(m, np.random.randint(h), 0)
+    m = np.roll(m, np.random.randint(w), 1)
+
+    return ~m
 
 
 def checkerboard_mask(size=256, s=4, batch_size=None):
