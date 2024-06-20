@@ -1,17 +1,18 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2022 Markus Völk
+Copyright © 2015 - 2024 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
 
 import numpy as np
 
-from utils.geometry import rot2quat, euler2rot2, rotx, roty, rotz
+from utils.geometry import trafo, rotx, roty, rotz, rot2quat
 
 from pythreejs import Object3D, AxesHelper, BufferAttribute, Points, Mesh, Shape, Group, LineSegments2
 from pythreejs import BufferGeometry, BoxGeometry, ShapeGeometry, LineSegmentsGeometry, CylinderGeometry
 from pythreejs import LineMaterial, PointsMaterial, MeshBasicMaterial, MeshPhongMaterial
+from pythreejs import Renderer, Scene, PerspectiveCamera, DirectionalLight, AmbientLight, GridHelper, OrbitControls
 
 
 astuple = lambda M: tuple(np.round(np.reshape(M, (-1,)), 6))
@@ -150,3 +151,59 @@ def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
     frame.position = astuple(p)
     frame.quaternion = astuple(rot2quat(R, True))
     return frame
+
+
+
+def show_cloud(xyz, rgb=None, Tcw=None, additional_frames=[],
+               width=600, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
+    """Displays a point cloud in jupyter notebook
+
+    # Arguments
+        xyz: float array of shape (..., 3)
+        rgb: uint8 array of sahpe (..., 3)
+        width: width of the notebook widget
+        height: height of the notebook widget
+        Tcw: homogeneous transformation, arrays of shape (4, 4)
+        additional_frames: iterable of homogeneous transformations, arrays of shape (4, 4)
+    """
+
+    if Tcw is None:
+        Tcw = np.eye(4)
+        Tw = trafo(R=rotz(np.pi))
+    else:
+        Tw = trafo(R=rotx(-np.pi/2))
+
+    world_frame = new_frame(Tw, frame_size=frame_size)
+    cam_frame = new_frame(Tcw, frame_size=frame_size)
+    world_frame.add(cam_frame)
+    cloud_frame = new_frame(frame_size=frame_size)
+
+    n = cloud_subsampling
+    xyz = xyz.reshape(-1,3)[::n,:]
+    if rgb is not None:
+        rgb = rgb.reshape(-1,3)[::n,:] / 255
+    cloud = new_cloud(xyz, rgb, point_size=point_size)
+    cloud_frame.add(cloud)
+    cam_frame.add(cloud_frame)
+
+    for T in additional_frames:
+        world_frame.add(new_frame(T, frame_size=frame_size))
+
+    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0,
+        children=[
+            DirectionalLight(color='white', position=(3,5,1), intensity=0.5)
+        ])
+    scene = Scene(
+        children=[cam, world_frame,
+            AmbientLight(color='#777777'),
+            #GridHelper(size=5, divisions=10, colorCenterLine='#888888', colorGrid='#444444'),
+        ])
+    orbit = OrbitControls(controlling=cam)
+    renderer = Renderer(camera=cam, scene=scene, controls=[orbit], width=width, height=height)
+
+    xyz_mean = np.mean(np.reshape(xyz, (-1,3)), axis=0)
+
+    orbit.target = astuple((Tw@Tcw@trafo(t=xyz_mean))[:3,3])
+    cam.position = astuple((Tw@Tcw)[:3,3])
+
+    return renderer
