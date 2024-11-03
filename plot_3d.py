@@ -154,8 +154,8 @@ def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
 
 
 
-def show_cloud(xyz, rgb=None, Tcw=None, additional_frames=[],
-               width=600, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
+def show_cloud(xyz, rgb=None, Tcw=None, frames_in_world=[], frames_in_camera=[],
+               width=800, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
     """Displays a point cloud in jupyter notebook
 
     # Arguments
@@ -164,7 +164,8 @@ def show_cloud(xyz, rgb=None, Tcw=None, additional_frames=[],
         width: width of the notebook widget
         height: height of the notebook widget
         Tcw: homogeneous transformation, arrays of shape (4, 4)
-        additional_frames: iterable of homogeneous transformations, arrays of shape (4, 4)
+        frames_in_world: iterable of homogeneous transformations, arrays of shape (4, 4)
+        frames_in_camera: iterable of homogeneous transformations, arrays of shape (4, 4)
     """
 
     if Tcw is None:
@@ -173,37 +174,50 @@ def show_cloud(xyz, rgb=None, Tcw=None, additional_frames=[],
     else:
         Tw = trafo(R=rotx(-np.pi/2))
 
-    world_frame = new_frame(Tw, frame_size=frame_size)
-    cam_frame = new_frame(Tcw, frame_size=frame_size)
-    world_frame.add(cam_frame)
-    cloud_frame = new_frame(frame_size=frame_size)
-
     n = cloud_subsampling
     xyz = xyz.reshape(-1,3)[::n,:]
     if rgb is not None:
         rgb = rgb.reshape(-1,3)[::n,:] / 255
     cloud = new_cloud(xyz, rgb, point_size=point_size)
+    
+    cloud_frame = new_frame(frame_size=frame_size)
     cloud_frame.add(cloud)
+    
+    cam_frame = new_frame(Tcw, frame_size=frame_size)
     cam_frame.add(cloud_frame)
+    
+    for T in frames_in_camera:
+        #cam_frame.add(new_frame(T, frame_size=frame_size))
+        cam_frame.add(new_axes(T))
 
-    for T in additional_frames:
-        world_frame.add(new_frame(T, frame_size=frame_size))
+    world_frame = new_frame(Tw, frame_size=frame_size)
+    world_frame.add(cam_frame)
 
-    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0,
+    for T in frames_in_world:
+        #world_frame.add(new_frame(T, frame_size=frame_size))
+        world_frame.add(new_axes(T))
+    
+    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0, aspect=1.0,
         children=[
             DirectionalLight(color='white', position=(3,5,1), intensity=0.5)
         ])
+    
     scene = Scene(
         children=[cam, world_frame,
             AmbientLight(color='#777777'),
-            #GridHelper(size=5, divisions=10, colorCenterLine='#888888', colorGrid='#444444'),
+            GridHelper(size=4, divisions=8, colorCenterLine='#888888', colorGrid='#444444'),
         ])
-    orbit = OrbitControls(controlling=cam)
+    
+    #xyz_ = np.reshape(xyz, (-1,3))
+    #xyz_mean = np.mean(xyz_[xyz_[:,2]>1e-5], axis=0)
+    #target = astuple((Tw@Tcw@trafo(t=xyz_mean))[:3,3])
+    target = (0,0,0)
+    orbit = OrbitControls(controlling=cam, target=target)
+    
     renderer = Renderer(camera=cam, scene=scene, controls=[orbit], width=width, height=height)
 
-    xyz_mean = np.mean(np.reshape(xyz, (-1,3)), axis=0)
-
-    orbit.target = astuple((Tw@Tcw@trafo(t=xyz_mean))[:3,3])
-    cam.position = astuple((Tw@Tcw)[:3,3])
-
+    Tc = Tw@Tcw
+    cam.position = astuple(Tc[:3,3])
+    cam.quaternion = astuple(rot2quat(Tc[:3,:3], False)*[-1,-1,1,1]) # but why?
+    
     return renderer
