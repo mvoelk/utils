@@ -208,10 +208,12 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     epoch = np.int32(max_df['epoch'])
     idx = np.argwhere(np.diff(epoch))[:,0]
     
-    if 'time' in max_df.keys() and len(idx) > 1:
-        t = max_df['time']
-        print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
-    
+    if len(idx) > 1:
+        print('steps per epoch %i ' % (int(idx[1]-idx[0])))
+        if 'time' in max_df.keys():
+            t = max_df['time']
+            print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
+
     if names is None:
         names = all_names.difference({'time', 'epoch', 'iteration'})
         print(names)
@@ -302,7 +304,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             #print(k+' no values')
             plt.close()
 
-def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validation=False, save_plots=False):
+def plot_history(log_dirs, names=None, limits=None, autoscale=True, validation=True, save_plots=False, markers=False):
 
     loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
@@ -361,14 +363,14 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, no_validatio
                     label = log_dirs[i]
                 else:
                     label = log_dirs[i] + ' (NaN)'
-                plt.plot(df['epoch'], df[k], '-o', color=colors[i], label=label, markersize=5)
+                plt.plot(df['epoch'], df[k], '-o' if markers else '-', color=colors[i], label=label, markersize=5)
 
             kv = 'val_'+k
-            if not no_validation and kv in df.keys() and len(df[kv]):
+            if validation and kv in df.keys() and len(df[kv]):
                 if np.all(np.isfinite(df[kv])):
                     if autoscale:
                         ymin, ymax = min(ymin, np.max(df[kv])), max(ymax, np.max(df[kv]))
-                plt.plot(df['epoch'], df[kv], '--o', color=colors[i], markersize=5)
+                plt.plot(df['epoch'], df[kv], '--o' if markers else '--', color=colors[i], markersize=5)
         
         if ymax > sys.float_info.min:
             epoch = list(range(0,xmax+1))

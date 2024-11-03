@@ -146,7 +146,7 @@ def count_parameters(model):
 
 
 def plot_parameter_statistic(model,
-                             layer_types=['Dense', 'Conv1D', 'Conv2D', 'Conv3D', 'Conv1DTranspose', 'Conv2DTranspose', 'Conv3DTranspose'],
+                             layer_types=['Dense', 'Conv1D', 'Conv2D', 'Conv3D', 'Conv1DTranspose', 'Conv2DTranspose', 'Conv3DTranspose', 'DepthwiseConv2D'],
                              trainable=True, non_trainable=True, outputs=False, channels=False):
     layer_types = [l.__name__ if type(l) == type else l for l in layer_types]
     layers = get_layers(model)

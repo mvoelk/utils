@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
+from functools import reduce
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
@@ -16,18 +17,18 @@ def grayscale(rgb):
 
 def saturation(rgb, var=0.5):
     gray = grayscale(rgb)
-    alpha = 2 * np.random.uniform() * var + (1 - var)
+    alpha = np.random.uniform(2*var) + (1 - var)
     rgb = rgb * alpha + (1 - alpha) * gray[:,:,None]
     return np.uint8(np.clip(rgb, 0, 255))
 
 def brightness(rgb, var=0.5):
-    alpha = 2 * np.random.uniform() * var + (1 - var)
+    alpha = np.random.uniform(2*var) + (1 - var)
     rgb = rgb * alpha
     return np.uint8(np.clip(rgb, 0, 255))
 
 def contrast(rgb, var=0.5):
     gs = grayscale(rgb).mean() * np.ones_like(rgb)
-    alpha = 2 * np.random.uniform() * var + (1 - var)
+    alpha = np.random.uniform(2*var) + (1 - var)
     rgb = rgb * alpha + (1 - alpha) * gs
     return np.uint8(np.clip(rgb, 0, 255))
 
@@ -325,4 +326,3 @@ def noise_mask(size=256, p=0.5, batch_size=None):
     if batch_size is not None:
         m = np.repeat(m[None,:,:,None], batch_size, axis=0)
     return np.float32(m)
-

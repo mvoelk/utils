@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def bar_plot(labels, data, title=None, total_width=.8, single_width=.9, vertical=False, figsize=(16,16), lim=(None,None), loc='best'):
+def bar_plot(data, labels=None, title=None, total_width=.8, single_width=.9, vertical=False, figsize=(16,16), lim=(None,None), loc='best'):
     '''
     # Arguments
-        labels: list of strings etc.
-        data: dict of data, key is used for legend
+        data: dict of data series, key is used for legend
+        labels: list of strings etc., tick labels
         title: string
     '''
 
@@ -40,16 +40,17 @@ def bar_plot(labels, data, title=None, total_width=.8, single_width=.9, vertical
 
     ax.legend(bars, data.keys(), loc=loc)
 
-    if vertical:
-        ax.set_xticks(list(range(len(labels))))
-        ax.set_xticklabels(labels, rotation=90)
-        ax.set_xlim(-1, len(labels))
-        ax.set_ylim(*lim)
-    else:
-        ax.set_yticks(list(range(len(labels))))
-        ax.set_yticklabels(labels, rotation=0)
-        ax.set_ylim(-1, len(labels))
-        ax.set_xlim(*lim)
+    if labels is not None:
+        if vertical:
+            ax.set_xticks(list(range(len(labels))))
+            ax.set_xticklabels(labels, rotation=90)
+            ax.set_xlim(-1, len(labels))
+            ax.set_ylim(*lim)
+        else:
+            ax.set_yticks(list(range(len(labels))))
+            ax.set_yticklabels(labels, rotation=0)
+            ax.set_ylim(-1, len(labels))
+            ax.set_xlim(*lim)
 
     plt.title(title)
     plt.show()
