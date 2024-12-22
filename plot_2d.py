@@ -99,13 +99,16 @@ def plot_output_distribution(y, mask=None):
     # y: shape (..., num_features)
     # mask: shape (...)
     
-    a = np.reshape(y, (-1,y.shape[-1]))
+    num_features = y.shape[-1]
+    a = np.reshape(y, (-1,num_features))
     if mask is not None:
         m = np.reshape(mask, (-1))
         a = a[m]
 
     plt.figure(figsize=(16,4))
-    r = range(a.shape[-1])
+    r = range(num_features)
     plt.errorbar(r, np.mean(a, axis=0), np.std(a, axis=0), linestyle='None', marker='x')
     plt.xticks(r)
+    plt.xlim(-1, num_features)
+    plt.grid()
     plt.show()

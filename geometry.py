@@ -361,6 +361,9 @@ def image_to_xyz_perspective(xy_img, z, K):
     y = (xy_img[...,1] - cy) * z / fy
     return np.stack([x,y,z], axis=-1)
 
+#def xyz_to_image_perspective(xyz, K):
+# TODO
+
 def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
     '''Transforms from image coordinates to 3d space.
 
@@ -377,6 +380,22 @@ def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
     x = (xy_img[...,0]-(w-1)/2) / pixel_per_meter
     y = (xy_img[...,1]-(h-1)/2) / pixel_per_meter
     return np.stack([x,y,z], axis=-1)
+
+def xyz_to_image_orthographic(xyz, image_size, pixel_per_meter):
+    '''Transforms from 3d space to image coordinates.
+
+    # Arguments
+        xyz: points in 3d space, shape (n, 3)
+        image_size: shape (2)
+        pixel_per_meter:
+
+    # Return
+        xy_img: shape (..., n, 2)
+    '''
+    w, h = image_size
+    x_img = xyz[...,0] * pixel_per_meter + (w-1)/2
+    y_img = xyz[...,1] * pixel_per_meter + (h-1)/2
+    return np.stack([x_img, y_img], axis=-1)
 
 
 def perspective_to_xyz(depth, K):
