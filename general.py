@@ -1,10 +1,11 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2017 - 2022 Markus Völk
+Copyright © 2017 - 2024 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
-import re, random
+import re, random, time
+import cProfile
 
 
 class Object():
@@ -12,7 +13,49 @@ class Object():
         self.__dict__.update(kwargs)
 
 
-def print_json_tree(json):
+class measure:
+    """Context manager for measuring execution time
+
+    Example:
+        with measure('Foobar'):
+            time.sleep(1)
+    """
+
+    def __init__(self, name='Execution'):
+        self.name = name
+
+    def __enter__(self):
+        self.start = time.perf_counter()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.time = time.perf_counter() - self.start
+        self.readout = f'{self.name} took {self.time:.3f} seconds'
+        print(self.readout)
+
+class profile:
+    """Context manager for profiling
+    
+    Example:
+        with profile():
+            time.sleep(1)
+    """
+
+    def __init__(self, sort='time'):
+        self.sort = sort
+
+    def __enter__(self):
+        self.profile = cProfile.Profile()
+        self.profile.enable()
+        self.start = time.perf_counter()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.profile.disable()
+        self.profile.print_stats(sort=self.sort)
+
+
+def print_json_tree(json_data):
     def recurse(d, o):
         pad = '  '
         if isinstance(o, dict):
@@ -22,9 +65,9 @@ def print_json_tree(json):
         if isinstance(o, list) and len(o) and isinstance(o[0], dict):
             print(pad*d + '...')
             recurse(d+1, o[0])
-    recurse(0, json)
+    recurse(0, json_data)
 
-def find_json_key(json, key, pprint=True):
+def find_json_key(json_data, key, pprint=True):
     # key can be a regex
     if isinstance(key, str):
         key = re.compile(key)
@@ -41,7 +84,7 @@ def find_json_key(json, key, pprint=True):
                 recurse(p+[k], o[k])
         if isinstance(o, list) and len(o) and isinstance(o[0], dict):
             recurse(p+['...'], o[0])
-    recurse([], json)
+    recurse([], json_data)
     if not pprint:
         return found
 
