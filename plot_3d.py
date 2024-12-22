@@ -6,6 +6,7 @@ Code was taken from https://github.com/mvoelk/utils
 
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from utils.geometry import trafo, rotx, roty, rotz, rot2quat
 
@@ -61,16 +62,31 @@ def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003, segments=16):
 
     return axes
 
-
-def new_cloud(pts, colors=None, color='#ff0000', point_size=0.001):
+def new_cloud(pts, colors=None, color=None, point_size=0.001):
+    """
+    # Arguments
+        pts: float, shape (n, 3)
+        colors: uint8, shape (n, 3)
+        color: str, '#ff0000'
+    """
     position = BufferAttribute(array=np.float32(pts))
     if colors is not None:
         color = BufferAttribute(array=np.float32(colors))
         geometry = BufferGeometry(attributes={'position': position, 'color': color})
         material = PointsMaterial(vertexColors='VertexColors', size=point_size)
-    else:
+    elif color is not None:
         geometry = BufferGeometry(attributes={'position': position})
         material = PointsMaterial(color=color, size=point_size)
+    else:
+        z = pts[:,2]
+        z_min, z_max = np.min(z), np.max(z)
+        z_norm = (z - z_min) / (z_max - z_min + 1e-8)
+        cmap = plt.get_cmap('viridis')
+        colors = cmap(z_norm)[:,:3]
+        color = BufferAttribute(array=np.float32(colors))
+        geometry = BufferGeometry(attributes={'position': position, 'color': color})
+        material = PointsMaterial(vertexColors='VertexColors', size=point_size)
+
     return Points(geometry=geometry, material=material)
 
 
@@ -144,6 +160,18 @@ def new_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), color='#ff0000', opaci
     box.quaternion = astuple(rot2quat(R, True))
     return box
 
+def new_range(xyz_range, color='#00ff00', opacity=0.25):
+    x_range, y_range, z_range = xyz_range
+    x_min, x_max = x_range
+    y_min, y_max = y_range
+    z_min, z_max = z_range
+    geometry = BoxGeometry(width=(x_max-x_min), height=(y_max-y_min), depth=(z_max-z_min), widthSegments=1, heightSegments=1, depthSegments=1)
+    material = MeshPhongMaterial(color=color, opacity=opacity, transparent=True, wireframe=False)
+    range_box = Mesh(geometry=geometry, material=material)
+    range_box.position = ((x_min+x_max)/2, (y_min+y_max)/2, (z_min+z_max)/2)
+    range_box.quaternion = (0,0,0,1)
+    return range_box
+
 
 def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
     if T is not None:
@@ -154,26 +182,34 @@ def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
 
 
 
-def show_cloud(xyz, rgb=None, Tcw=None, frames_in_world=[], frames_in_camera=[],
+def show_cloud(xyz, rgb=None, Tcw=None, 
+               frames_in_world=[], frames_in_camera=[], ranges_in_world=[], ranges_in_camera=[],
                width=800, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
     """Displays a point cloud in jupyter notebook
 
     # Arguments
-        xyz: float array of shape (..., 3)
-        rgb: uint8 array of sahpe (..., 3)
+        xyz: float, shape (..., 3)
+        rgb: uint8, shape (..., 3)
         width: width of the notebook widget
         height: height of the notebook widget
-        Tcw: homogeneous transformation, arrays of shape (4, 4)
-        frames_in_world: iterable of homogeneous transformations, arrays of shape (4, 4)
-        frames_in_camera: iterable of homogeneous transformations, arrays of shape (4, 4)
+        Tcw: camera frame, homogeneous transformation, shape (4, 4)
+        frames_in_world: homogeneous transformations, shape (n, 4, 4)
+        frames_in_camera: homogeneous transformations, shape (n, 4, 4)
+        ranges_in_world: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2)
+        ranges_in_camera: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2)
     """
+
+    frames_in_world = np.reshape(frames_in_world, (-1,4,4))
+    frames_in_camera = np.reshape(frames_in_camera, (-1,4,4))
+    ranges_in_world = np.reshape(ranges_in_world, (-1,3,2))
+    ranges_in_camera = np.reshape(ranges_in_camera, (-1,3,2))
+
+    Tw = trafo(R=rotx(-np.pi/2))
 
     if Tcw is None:
         Tcw = np.eye(4)
         Tw = trafo(R=rotz(np.pi))
-    else:
-        Tw = trafo(R=rotx(-np.pi/2))
-
+    
     n = cloud_subsampling
     xyz = xyz.reshape(-1,3)[::n,:]
     if rgb is not None:
@@ -188,16 +224,22 @@ def show_cloud(xyz, rgb=None, Tcw=None, frames_in_world=[], frames_in_camera=[],
     
     for T in frames_in_camera:
         #cam_frame.add(new_frame(T, frame_size=frame_size))
-        cam_frame.add(new_axes(T))
+        cam_frame.add(new_axes(T, l=frame_size, r=0.03*frame_size))
+    
+    for xyz_range in ranges_in_camera:
+        cam_frame.add(new_range(xyz_range))
 
     world_frame = new_frame(Tw, frame_size=frame_size)
     world_frame.add(cam_frame)
 
     for T in frames_in_world:
         #world_frame.add(new_frame(T, frame_size=frame_size))
-        world_frame.add(new_axes(T))
+        world_frame.add(new_axes(T, l=frame_size, r=0.03*frame_size))
     
-    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0, aspect=1.0,
+    for xyz_range in ranges_in_world:
+        world_frame.add(new_range(xyz_range))
+
+    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0,
         children=[
             DirectionalLight(color='white', position=(3,5,1), intensity=0.5)
         ])
@@ -207,16 +249,18 @@ def show_cloud(xyz, rgb=None, Tcw=None, frames_in_world=[], frames_in_camera=[],
             AmbientLight(color='#777777'),
             GridHelper(size=4, divisions=8, colorCenterLine='#888888', colorGrid='#444444'),
         ])
-    
+
+    Tc = Tw@Tcw
     #xyz_ = np.reshape(xyz, (-1,3))
     #xyz_mean = np.mean(xyz_[xyz_[:,2]>1e-5], axis=0)
-    #target = astuple((Tw@Tcw@trafo(t=xyz_mean))[:3,3])
-    target = (0,0,0)
+    #Tt = Tc @ trafo(t=xyz_mean)
+    Tt = Tc @ trafo(t=(0,0,2))
+    
+    target = astuple(Tt[:3,3])
     orbit = OrbitControls(controlling=cam, target=target)
     
     renderer = Renderer(camera=cam, scene=scene, controls=[orbit], width=width, height=height)
 
-    Tc = Tw@Tcw
     cam.position = astuple(Tc[:3,3])
     cam.quaternion = astuple(rot2quat(Tc[:3,:3], False)*[-1,-1,1,1]) # but why?
     
