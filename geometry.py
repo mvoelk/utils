@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2023 Markus Völk
+Copyright © 2015 - 2024 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
@@ -263,7 +263,7 @@ def orthogonalize_matrix(R):
     '''Orthogonalizes a rotation matrix.
 
     # Arguments
-        R: array of sahpe (..., 3, 3)
+        R: array of shape (..., 3, 3)
 
     # Notes
         z-axis is prioritized
@@ -519,6 +519,35 @@ def crop_and_scale_perspective(img, crop_xy=[0,0], crop_wh=[1000000,1000000], sc
         img = cv2.resize(img, (int(w2), int(h2)), interpolation=interpolation)
         return img
 
+def normals_from_xyz(xyz, kernel_size=3, invalid_value=(0,0,0)):
+    """Computes the normals of a structured point cloud
+    
+    # Arguments
+        xyz: shape (h,w,3)
+    """
+    
+    kernel = np.ones((kernel_size,kernel_size), dtype='float32')
+    v = np.sum(np.abs(xyz), axis=-1)
+    valid_mask = np.isfinite(v) & (v > 0)
+    invalid_mask = cv2.filter2D(np.float32(~valid_mask), -1, kernel) != 0
+    
+    gy = cv2.Sobel(xyz, cv2.CV_64F, 1, 0, ksize=kernel_size)
+    gx = cv2.Sobel(xyz, cv2.CV_64F, 0, 1, ksize=kernel_size)
+    normals = np.cross(gx, gy, axis=-1)
+    normals = normals / (np.linalg.norm(normals, axis=-1, keepdims=True)+1e-10)
+
+    normals[invalid_mask] = invalid_value
+    return normals
+
+def center_of_mass(mask):
+    """Calculates the center of mass of a mask"""
+    moments = cv2.moments(np.uint8(mask>0))
+    if moments['m00'] != 0:
+        cx = int(moments['m10'] / moments['m00'])
+        cy = int(moments['m01'] / moments['m00'])
+        return cx, cy
+    else:
+        return None
 
 def bilinear_interpolate_points(img, xy):
     """
