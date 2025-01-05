@@ -3,4 +3,6 @@ matplotlib
 scipy
 opencv-python
 seaborn
+pandas
 pyarrow
+pythreejs

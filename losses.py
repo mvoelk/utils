@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2017 - 2022 Markus Völk
+Copyright © 2017 - 2024 Markus Völk
 Code was taken from https://github.com/mvoelk/ssd_detectors
 """
 
@@ -19,14 +19,14 @@ def absolute_loss(y_true, y_pred):
     return tf.reduce_sum(loss, axis=-1)
 
 def smooth_l1_loss(y_true, y_pred):
-    """Compute L1-smooth loss.
+    """Compute Smooth L1 loss.
 
     # Arguments
         y_true: Ground truth, tensor of shape (..., n)
         y_pred: Prediction, tensor of shape (..., n)
 
     # Returns
-        loss: Smooth L1-smooth loss, tensor of shape (...)
+        loss: Smooth L1 loss, tensor of shape (...)
 
     # References
         [Fast R-CNN](https://arxiv.org/abs/1504.08083)

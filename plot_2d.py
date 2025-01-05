@@ -64,12 +64,9 @@ def plot_abs_error_hist(y_true, y_pred=None, mask=None, bins=100, cumulative=Fal
         mask has to be of same shape
 
     # Example 1
-        mask = y_true[i,...,0] < 0.5
         plot_abs_error_hist(y_true[i,...,1], y_pred[i,...,1], bins=100, y_max=100, cumulative=False)
-        plot_abs_error_hist(y_true[i,...,1], y_pred[i,...,1], mask, bins=100, y_max=100, cumulative=False)
+
     # Example 2
-        mask = y_true[i,...,0] < 0.5
-        plot_abs_error_hist(y_true[i,...,1], y_pred[i,...,1], bins=100, y_max=None, cumulative=True)
         plot_abs_error_hist(y_true[i,...,1], y_pred[i,...,1], mask, bins=100, y_max=None, cumulative=True)
     """
     

@@ -110,19 +110,19 @@ def matrix2pos(T):
     return np.array([x,y,z,a,b,c])
 
 def rot2axisangle(R):
-    eps = 1e-8
+    eps = 1e-6
     arg = (R[0,0]+R[1,1]+R[2,2]-1)/2
     arg = np.clip(arg, -1, 1)
     a = np.arccos(arg)
-    if np.abs(a) > eps:
-        x = R[2,1]-R[1,2]
-        y = R[0,2]-R[2,0]
-        z = R[1,0]-R[0,1]
-        v = np.array([x,y,z])
-        v = v / np.sqrt(np.dot(v,v))
-        return v, a
+    if a < eps:
+        v = np.array([1,0,0])
+    elif np.pi-a < eps:
+        # for angle = pi, axis is the eigenvector corresponding to eigenvalue 1
+        v = np.linalg.svd(R - np.eye(3))[0][:,-1]
     else:
-        return np.array([0,0,0], dtype=R.dtype), np.float64(0)
+        v = np.array([R[2,1]-R[1,2], R[0,2]-R[2,0], R[1,0]-R[0,1]])
+        v = v / np.linalg.norm(v)
+    return np.array(v, dtype=R.dtype), np.float64(a)
 
 def axisangle2rot(v, a):
     x, y, z = v

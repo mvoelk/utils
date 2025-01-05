@@ -25,6 +25,8 @@ def xyz_to_image_orthographic(xyz, image_size, pixel_per_meter):
     y_img = xyz[...,1] * pixel_per_meter + (h-1)/2
     return np.stack([x_img, y_img], axis=-1)
 
+#def xyz_to_image_perspective(xyz, K):
+# TODO
 
 def perspective_to_xyz(depth, K):
     '''Creates a point cloud from a depth map.
@@ -221,8 +223,6 @@ def image_to_xyz_perspective(xy_img, z, K):
     y = (xy_img[...,1] - cy) * z / fy
     return np.stack([x,y,z], axis=-1)
 
-#def xyz_to_image_perspective(xyz, K):
-# TODO
 
 def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
     '''Transforms from image coordinates to 3d space.

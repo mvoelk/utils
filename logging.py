@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2017 - 2022 Markus Völk
+Copyright © 2017 - 2024 Markus Völk
 Code was taken from https://github.com/mvoelk/ssd_detectors
 """
 
