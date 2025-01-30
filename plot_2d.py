@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2022 Markus Völk
+Copyright © 2015 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
@@ -108,4 +108,33 @@ def plot_output_distribution(y, mask=None):
     plt.xticks(r)
     plt.xlim(-1, num_features)
     plt.grid()
+    plt.show()
+
+
+def plot_points(points, normals=None, point_size=2.0, view=None, figsize=(8,6), limits=(-1,1)):
+    '''Basic quiver plot for point clouds and normal vectors
+
+    # Arguments
+        points: float, shape (..., 3)
+        normals: float, shape (..., 3)
+    '''
+
+    plt.figure(figsize=figsize)
+
+    ax = plt.subplot(111, projection='3d')
+    points = np.asanyarray(points)
+    ax.scatter(*points.T, s=point_size)
+    if normals is not None:
+        normals = np.asarray(normals)
+        ax.quiver(*points.T, *normals.T, alpha=0.3, length=0.02*point_size, color='tab:red')
+    ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+    ax.set_xlim(*limits); ax.set_ylim(*limits); ax.set_zlim(*limits)
+
+    if view == 'x':
+        ax.view_init(elev=0.0, azim=0.0)
+    if view == 'y':
+        ax.view_init(elev=0.0, azim=90.0)
+    if view == 'z':
+        ax.view_init(elev=90.0, azim=90.0)
+
     plt.show()

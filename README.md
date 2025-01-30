@@ -36,12 +36,12 @@ Functions related to Keras Models
 activation and parameter statistics, etc.
 
 ## plot_2d.py
-Plots with matplotlib
+Plots using matplotlib
 
 for dense CNN output, etc.
 
 ## plot_3d.py
-Visaulizations with pythreejs
+Visaulizations using pythreejs
 
 Frames, Boxes, Point Clouds, etc.
 
