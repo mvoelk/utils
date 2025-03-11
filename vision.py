@@ -240,3 +240,23 @@ def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
     x = (xy_img[...,0]-(w-1)/2) / pixel_per_meter
     y = (xy_img[...,1]-(h-1)/2) / pixel_per_meter
     return np.stack([x,y,z], axis=-1)
+
+
+def depth_as_rgb(img):
+    vmin, vmax = np.min(img), np.max(img)
+    if len(img.shape) == 2:
+        img = img[:,:,None]
+    if img.shape[2] == 1:
+        img = np.tile(img, (1,1,3))
+    return np.uint8((img-vmin)/(vmax-vmin)*255)
+
+def save_mask(file_path, mask):
+    cv2.imwrite(file_path, np.uint8(mask>0)*255)
+
+def save_rgb(file_path, img):
+    cv2.imwrite(file_path, img[...,(2,1,0)])
+
+
+# legacy
+#depth_to_xyz = perspective_to_xyz
+#image_to_xyz = image_to_xyz_perspective

@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2024 Markus Völk
+Copyright © 2015 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
@@ -37,23 +37,7 @@ def quat2rot(q, xyzw=False):
     ])
     return R
 
-def euler2rot(angles):
-    '''Convert Euler Angles to Rotation Matrix (V-Rep convention)'''
-    s1, s2, s3 = np.sin(angles)
-    c1, c2, c3 = np.cos(angles)
-    Rx = np.array([[1,0,0], [0,c1,-s1], [0,s1,c1]])
-    Ry = np.array([[c2,0,s2], [0,1,0], [-s2,0,c2]])
-    Rz = np.array([[c3,-s3,0], [s3,c3,0], [0,0,1]])
-    return np.dot(Rx, np.dot(Ry, Rz))
-
-def rot2euler(R, s=1):
-    '''Convert Rotation Matrix to Euler Angles (V-Rep convention)'''
-    a = np.arctan2(-s*R[1,2], s*R[2,2])
-    b = np.arctan2(R[0,2], s*np.sqrt(max(1-R[0,2]*R[0,2], 0.0)))
-    g = np.arctan2(-s*R[0,1], s*R[0,0])
-    return np.array([a,b,g])
-
-def euler2rot2(angles, axes='xyz', fixed=False):
+def euler2rot(angles, axes='xyz', fixed=False):
     '''Converts arbitrary Euler Angles to Rotation Matrix
 
         V-Rep: 'xyz', False
@@ -64,7 +48,7 @@ def euler2rot2(angles, axes='xyz', fixed=False):
         Rs.reverse()
     return np.linalg.multi_dot(Rs)
 
-def rot2euler2(R, axes='xyz', fixed=False, s=1):
+def rot2euler(R, axes='xyz', fixed=False, s=1):
     '''Converts a Rotation Matrix to Euler Angles
 
         V-Rep: 'xyz', False
@@ -88,7 +72,6 @@ def rot2euler2(R, axes='xyz', fixed=False, s=1):
                 np.arctan2(-R[2,0], sy),
                 np.arctan2(R[1,0], R[0,0])
             ])
-        return np.array([x, y, z])
     elif axes == 'xyz' and not fixed:
         return np.array([
             np.arctan2(-s*R[1,2], s*R[2,2]),
@@ -97,17 +80,6 @@ def rot2euler2(R, axes='xyz', fixed=False, s=1):
         ])
     else:
         return None
-
-def pose2matrix(pose):
-    x, y, z, a, b, c = pose
-    T = np.array([[1,0,0,x],[0,1,0,y],[0,0,1,z],[0,0,0,1]], dtype='float')
-    T[:3,:3] = euler2rot([a, b, c])
-    return T
-
-def matrix2pos(T):
-    x, y, z = T[:3,3]
-    a, b, c = rot2euler(T[:3,:3])
-    return np.array([x,y,z,a,b,c])
 
 def rot2axisangle(R):
     eps = 1e-6
@@ -400,3 +372,6 @@ def hand_eye_calibration(A, B):
     return X, Z
 
 
+# legacy
+#euler2rot2 = euler2rot
+#rot2euler2 = rot2euler
