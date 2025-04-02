@@ -25,6 +25,27 @@ def calc_distance_matrix(z):
     return np.linalg.norm(z[:,None,:] - z[None,:,:], axis=-1)
 
 
+def calc_cosine_similarity(vectors, vector):
+    """Cosine similarity between a batch of vectors and a given vector
+
+    # Arguments
+        vectors: shape (num_vectors, num_features)
+        vector: shape (num_features)
+    """
+    vs, v = vectors, vector
+    vsn, vn = np.linalg.norm(vs, axis=-1), np.linalg.norm(v, axis=-1)
+    return (vs @ v) / (vsn * vn)
+
+def calc_euclidean_distance(vectors, vector):
+    """Euclidean distance between a batch of vectors and a given vector
+
+    # Arguments
+        vectors: shape (num_vectors, num_features)
+        vector: shape (num_features)
+    """
+    return np.linalg.norm(vectors - vector, axis=-1)
+
+
 def calc_iou(boxes, box, fix_points=True):
     """Intersection over union for a batch of axis-aligned bounding
     boxes with a given bounding box.
