@@ -242,6 +242,22 @@ def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
     return np.stack([x,y,z], axis=-1)
 
 
+def find_local_maxima(img):
+    """Fineds the local maxima in an image.
+
+    # Arguments
+        img: shape (h,w)
+
+    # Return
+        xy: tuple with indices, each shape (n)
+
+    """
+    k = np.ones((3,3), dtype='uint8')
+    k[1,1] = 0
+    xy = np.where(img > cv2.dilate(img, k))
+    return xy
+
+
 def depth_as_rgb(img):
     vmin, vmax = np.min(img), np.max(img)
     if len(img.shape) == 2:
