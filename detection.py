@@ -68,7 +68,7 @@ def draw_corners(corners):
         xy = corners[i,0,:]
         plt.plot(xy[0], xy[1], 'o', color=colors[i], markersize=4)
         plt.text(xy[0], xy[1], i, color='c')
-        
+
 def draw_frame(T, K, scale=0.15, style=''):
     # draws projected homogeneous transformation in image plane
     r1, r2, r3, p0 = T[:3,:].T
@@ -115,19 +115,6 @@ def get_neighbors(shape=(6,4)):
     idxs = xy[:,1::2] * map_w + xy[:,0::2]
     idxs[np.logical_not(valide)] = -1
     return idxs
-
-
-def color_id_map(id_map):
-    img = np.zeros((*id_map.shape, 3), dtype='float32')
-    for i in np.unique(id_map):
-        if i == 0:
-            c = 0.1 * np.ones(3)
-        else:
-            c = np.random.random(3)
-            a = 0.9
-            c = a*c + (1-a)*np.ones_like(c)
-        img += np.repeat((id_map==i)[:,:,None], 3, axis=-1) * c
-    return img
 
 
 def crop_random_patch(img, size):

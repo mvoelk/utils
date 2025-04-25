@@ -250,12 +250,31 @@ def find_local_maxima(img):
 
     # Return
         xy: tuple with indices, each shape (n)
-
     """
     k = np.ones((3,3), dtype='uint8')
     k[1,1] = 0
     xy = np.where(img > cv2.dilate(img, k))
     return xy
+
+
+def color_id_map(id_map):
+    """
+    # Arguments
+        id_map: uint, shape (w,h)
+
+    # Return:
+        img: float [0,1], shape (w,h,3)
+    """
+    img = np.zeros((*id_map.shape, 3), dtype='float32')
+    for i in np.unique(id_map):
+        if i == 0:
+            c = 0.1 * np.ones(3)
+        else:
+            c = np.random.random(3)
+            a = 0.9
+            c = a*c + (1-a)*np.ones_like(c)
+        img[id_map==i] = c
+    return img
 
 
 def depth_as_rgb(img):
