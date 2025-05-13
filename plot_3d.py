@@ -90,6 +90,36 @@ def new_cloud(pts, colors=None, color=None, point_size=0.001):
     return Points(geometry=geometry, material=material)
 
 
+def new_mesh(mesh, color='#333333'):
+    """
+    # Arguments
+        mesh: Trimesh object
+        color: color of the mesh, use None for random color
+    """
+    vertices = np.ascontiguousarray(mesh.vertices, dtype='float32')
+    faces = np.ascontiguousarray(mesh.faces.ravel(), dtype='uint32')
+    normals = np.ascontiguousarray(mesh.vertex_normals.ravel(), dtype='float32')
+    if color is None:
+        color = random_color()
+
+    geometry = BufferGeometry(
+        attributes={
+            'position': BufferAttribute(vertices, normalized=False),
+            'index': BufferAttribute(faces, normalized=False),
+            'normal': BufferAttribute(normals, normalized=False),
+            # TODO
+            #'uv': BufferAttribute(mesh.visual.uv.flatten(), normalized=False)
+            # mesh.visual.vertex_colors = [255, 0, 0, 255]
+        }
+    )
+    material = MeshPhongMaterial(
+        color=color, specular='#ffffff', roughness=0.9, metalness=0.1, shininess=1, 
+        flatShading=True, transparent=False, opacity=0.8, wireframe=False,
+        #emissive='#333333', emissiveIntensity=0.5,
+    )
+    return Mesh(geometry=geometry, material=material)
+
+
 def new_frame(T=None, p=np.zeros(3), R=np.eye(3), frame_size=0.05):
     if T is not None:
         p, R = T[:3,3], T[:3,:3]
@@ -181,9 +211,9 @@ def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
     return frame
 
 
-
 def show_cloud(xyz, rgb=None, Tcw=None, 
                frames_in_world=[], frames_in_camera=[], ranges_in_world=[], ranges_in_camera=[],
+               meshes_in_world=[], meshes_in_camera=[],
                width=800, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
     """Displays a point cloud in jupyter notebook
 
@@ -197,6 +227,8 @@ def show_cloud(xyz, rgb=None, Tcw=None,
         frames_in_camera: homogeneous transformations, shape (n, 4, 4)
         ranges_in_world: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2)
         ranges_in_camera: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2)
+        meshes_in_world: list of trimesh Trimesh objects, placed at frames_in_world, elements can be None
+        meshes_in_camera: list of trimesh Trimesh objects, placed at frames_in_camera, elements can be None
     """
 
     frames_in_world = np.reshape(frames_in_world, (-1,4,4))
@@ -222,9 +254,15 @@ def show_cloud(xyz, rgb=None, Tcw=None,
     cam_frame = new_frame(Tcw, frame_size=frame_size)
     cam_frame.add(cloud_frame)
     
-    for T in frames_in_camera:
+    for i, T in enumerate(frames_in_camera):
         #cam_frame.add(new_frame(T, frame_size=frame_size))
-        cam_frame.add(new_axes(T, l=frame_size, r=0.03*frame_size))
+        axes = new_axes(T, l=frame_size, r=0.03*frame_size)
+        try:
+            if len(meshes_in_camera) and meshes_in_camera[i] is not None:
+                axes.add(new_mesh(meshes_in_camera[i], None))
+        except Exception as e:
+            print(e)
+        cam_frame.add(axes)
     
     for xyz_range in ranges_in_camera:
         cam_frame.add(new_range(xyz_range))
@@ -234,7 +272,13 @@ def show_cloud(xyz, rgb=None, Tcw=None,
 
     for T in frames_in_world:
         #world_frame.add(new_frame(T, frame_size=frame_size))
-        world_frame.add(new_axes(T, l=frame_size, r=0.03*frame_size))
+        axes = new_axes(T, l=frame_size, r=0.03*frame_size)
+        try:
+            if len(meshes_in_world) and meshes_in_world[i] is not None:
+                axes.add(new_mesh(meshes_in_world[i], None))
+        except Exception as e:
+            print(e)
+        world_frame.add(axes)
     
     for xyz_range in ranges_in_world:
         world_frame.add(new_range(xyz_range))
@@ -252,8 +296,7 @@ def show_cloud(xyz, rgb=None, Tcw=None,
 
     Tc = Tw@Tcw
     #xyz_ = np.reshape(xyz, (-1,3))
-    #xyz_mean = np.mean(xyz_[xyz_[:,2]>1e-5], axis=0)
-    #Tt = Tc @ trafo(t=xyz_mean)
+    #Tt = Tc @ trafo(t=np.mean(xyz_[xyz_[:,2]>1e-5], axis=0))
     Tt = Tc @ trafo(t=(0,0,2))
     
     target = astuple(Tt[:3,3])
