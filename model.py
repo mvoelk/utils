@@ -199,8 +199,40 @@ def plot_parameter_statistic(model,
     plt.show()
 
 
-def plot_activation(model, batch_size=32, distribution=False, ignoere_zeros=False):
-    # plots mean and std for all layers in a model
+def plot_kernels(model, distribution=False):
+    # plots kernel mean and std for all layers in a model
+
+    layer_names = []
+    w = []
+    for l in model.layers:
+        if hasattr(l, 'kernel'):
+            layer_names.append(l.name)
+            w.append(np.array(l.kernel).ravel())
+    num_layers = len(layer_names)
+    
+    if distribution:
+        plt.figure(figsize=(6, 1.4*num_layers))
+        for i in range(num_layers):
+            plt.subplot(num_layers, 1, i+1)
+            plt.hist(w[i], bins=100)
+            plt.title(layer_names[i])
+        plt.tight_layout()
+        plt.show()
+    else:
+        y_mean, y_std = [np.mean(a) for a in w], [np.std(a) for a in w]
+        x = np.arange(num_layers)
+        
+        plt.figure(figsize=(12, 0.4+0.3*num_layers))
+        plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
+        plt.yticks(x, layer_names, rotation=0)
+        plt.grid(True)
+        ax = plt.gca()
+        ax.invert_yaxis()
+        plt.show()
+
+
+def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=False):
+    # plots activation mean and std for all layers in a model
     
     #outputs = [l.output for l in model.layers]
     outputs = [l.output[0] if type(l.output) is list else l.output for l in model.layers]
