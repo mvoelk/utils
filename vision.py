@@ -285,11 +285,16 @@ def depth_as_rgb(img):
         img = np.tile(img, (1,1,3))
     return np.uint8((img-vmin)/(vmax-vmin)*255)
 
-def save_mask(file_path, mask):
+
+def write_mask(file_path, mask):
     cv2.imwrite(file_path, np.uint8(mask>0)*255)
 
-def save_rgb(file_path, img):
+def write_rgb(file_path, img):
     cv2.imwrite(file_path, img[...,(2,1,0)])
+
+def write_depth_as_rgb(file_path, img):
+    rgb = depth_as_rgb(img)
+    cv2.imwrite(file_path, rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
 
 
 # legacy
