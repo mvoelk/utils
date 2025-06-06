@@ -98,7 +98,7 @@ def calc_memory_usage(model, batch_size=1):
     # Arguments
         model: Keras model.
         batch_size: Batch size used for training.
-    
+
     source: https://stackoverflow.com/a/46216013/445710
     """
     # TODO: nested models, recursion
@@ -138,10 +138,10 @@ def calc_memory_usage(model, batch_size=1):
 def count_parameters(model):
     trainable_count = int(np.sum([np.prod(p.shape) for p in model.trainable_weights]))
     non_trainable_count = int(np.sum([np.prod(p.shape) for p in model.non_trainable_weights]))
-    
+
     print('trainable     {:>16,d}'.format(trainable_count))
     print('non-trainable {:>16,d}'.format(non_trainable_count))
-    
+
     return trainable_count + non_trainable_count
 
 
@@ -188,7 +188,7 @@ def plot_parameter_statistic(model,
         plt.barh(y, counts_channels, align='center', color=colors[3], left=offset)
         offset += np.array(counts_channels, dtype=int)
         legend.append('channels')
-    
+
     plt.grid()
     plt.yticks(y, names)
     plt.ylim(y[0]-1, y[-1]+1)
@@ -209,7 +209,7 @@ def plot_kernels(model, distribution=False):
             layer_names.append(l.name)
             w.append(np.array(l.kernel).ravel())
     num_layers = len(layer_names)
-    
+
     if distribution:
         plt.figure(figsize=(6, 1.4*num_layers))
         for i in range(num_layers):
@@ -221,7 +221,7 @@ def plot_kernels(model, distribution=False):
     else:
         y_mean, y_std = [np.mean(a) for a in w], [np.std(a) for a in w]
         x = np.arange(num_layers)
-        
+
         plt.figure(figsize=(12, 0.4+0.3*num_layers))
         plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
         plt.yticks(x, layer_names, rotation=0)
@@ -233,7 +233,7 @@ def plot_kernels(model, distribution=False):
 
 def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=False):
     # plots activation mean and std for all layers in a model
-    
+
     #outputs = [l.output for l in model.layers]
     outputs = [l.output[0] if type(l.output) is list else l.output for l in model.layers]
     tmp_model = Model(model.input, outputs)
@@ -246,13 +246,13 @@ def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=Fal
         x = np.float32(np.clip(np.random.normal(size=[batch_size, *model.input_shape[1:]]), -3, 3))
     else:
         x = [np.float32(np.clip(np.random.normal(size=[batch_size, *s[1:]]), -3, 3)) for s in model.input_shape]
-    
+
     y = tmp_model(x)
     y = [np.array(a).flatten() for a in y]
-    
+
     if ignoere_zeros:
         y = [a[a!=0.0] for a in y]
-    
+
     if distribution:
         plt.figure(figsize=(6, 1.4*num_layers))
         for i in range(num_layers):
@@ -264,7 +264,7 @@ def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=Fal
     else:
         y_mean, y_std = [np.mean(a) for a in y], [np.std(a) for a in y]
         x = np.arange(num_layers)
-        
+
         plt.figure(figsize=(6, 0.4+0.2*num_layers))
         plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
         plt.yticks(x, layer_names, rotation=0)
@@ -276,31 +276,31 @@ def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=Fal
 
 def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
     # plots mean and std for layers in PartiaConv model
-    
+
     conv_layers = [ l for l in model.layers if l.__class__.__name__ in ['PartialConv2D', 'PartialDepthwiseConv2D', 'Lambda'] ]
-    
+
     input_shape = model.input_shape[0][1:]
     outputs_x = [model.layers[0].output] + [l.output[0] for l in conv_layers] + [model.output[0]]
     outputs_m = [model.layers[1].output] + [l.output[1] for l in conv_layers] + [model.output[1]]
     layer_names = ['input'] + [l.name for l in conv_layers] + ['output']
     num_layers = len(layer_names)
-    
+
     tmp_model = Model(model.input, outputs_x+outputs_m)
-    
+
     #x = np.float32(np.random.uniform(-1,1, size=[batch_size, *input_shape]))
     x = np.float32(np.clip(np.random.normal(size=[batch_size, *input_shape]), -3, 3))
     m = np.float32(np.random.binomial(1, 1-sparsity, size=[batch_size, *input_shape]))
     y = tmp_model([x,m])
-    
+
     y_x, y_m = y[:num_layers], y[num_layers:]
     y_xm = [y_x[i]*y_m[i] for i in range(num_layers)]
 
     y_x_mean, y_x_std = [np.mean(a) for a in y_x], [np.std(a) for a in y_x]
     y_m_mean, y_m_std = [np.mean(a) for a in y_m], [np.std(a) for a in y_m]
     y_xm_mean, y_xm_std = [np.mean(a) for a in y_xm], [np.std(a) for a in y_xm]
-    
+
     x = np.arange(num_layers)
-    
+
     plt.figure(figsize=(16, 0.8+0.2*num_layers))
     plt.subplot(131); plt.title('x')
     plt.errorbar(y_x_mean, x, xerr=y_x_std, fmt='o')
@@ -308,24 +308,69 @@ def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
     plt.grid(True)
     ax = plt.gca()
     ax.invert_yaxis()
-    
+
     plt.subplot(132); plt.title('xm')
     plt.errorbar(y_xm_mean, x, xerr=y_xm_std, fmt='o')
     plt.yticks(x, [])
     plt.grid(True)
     ax = plt.gca()
     ax.invert_yaxis()
-    
+
     plt.subplot(133); plt.title('m')
     plt.errorbar(y_m_mean, x, xerr=y_m_std, fmt='o')
     plt.yticks(x, [])
     plt.grid(True)
     ax = plt.gca()
     ax.invert_yaxis()
-    
+
     plt.tight_layout()
     plt.show()
 
+
+def plot_weights_over_epochs(weight_dir):
+
+    if isinstance(weight_dir, str):
+        file_names = sorted(glob(f"{weight_dir}/*.weights.h5"))
+
+    stats = { 'name': [], 'mean': [], 'std': [] }
+
+    def visit_group(name, obj):
+        if isinstance(obj, h5py.Group) and name.endswith("/vars"):
+            name = obj.attrs['name']
+            if name.startswith('conv'):
+                w = np.asarray(obj['0'])
+                if name not in stats['name']:
+                    stats['name'].append(name)
+                    stats['mean'].append([])
+                    stats['std'].append([])
+                idx = stats['name'].index(name)
+                stats['mean'][idx].append(np.mean(w))
+                stats['std'][idx].append(np.std(w))
+
+    for n in file_names:
+        with h5py.File(n, 'r') as f:
+            f.visititems(visit_group)
+
+    stats['mean'] = np.asarray(stats['mean'])
+    stats['std'] = np.asarray(stats['std'])
+    #return stats
+
+    layer_names = stats['name']
+    num_layers = len(layer_names)
+    num_epochs = stats['mean'].shape[-1]
+    x = np.arange(num_layers)
+
+    plt.figure(figsize=(6, 0.4+0.12*num_epochs*num_layers))
+    for i in range(num_epochs):
+        y_mean = stats['mean'][:,i]
+        y_std = stats['std'][:,i]
+        plt.errorbar(y_mean, x+i/(num_epochs+1), xerr=y_std, fmt='|', label=str(i), alpha=0.9, markersize=7, capsize=3)
+    plt.yticks(x, layer_names, rotation=0)
+    plt.ylim(-0.5, num_layers+0.5)
+    plt.grid(True)
+    ax = plt.gca()
+    ax.invert_yaxis()
+    plt.show()
 
 
 def calc_receptive_field(model, layer_name, verbose=False):
