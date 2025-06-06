@@ -35,7 +35,7 @@ class measure:
 
 class profile:
     """Context manager for profiling
-    
+
     Example:
         with profile():
             time.sleep(1)
@@ -87,6 +87,20 @@ def find_json_key(json_data, key, pprint=True):
     recurse([], json_data)
     if not pprint:
         return found
+
+def print_h5_info(file_path):
+    import h5py
+
+    def print_attrs(name, obj):
+        s = '%-8s %-70s' % (obj.__class__.__name__, name)
+        if isinstance(obj, h5py.Group):
+            s += ' '.join(['%s = %s'%(k,v) for k,v in obj.attrs.items()])
+        elif isinstance(obj, h5py.Dataset):
+            s += str(obj.shape)
+        print(s)
+
+    with h5py.File(file_path, 'r') as f:
+        f.visititems(print_attrs)
 
 
 def random_derangement(n):
