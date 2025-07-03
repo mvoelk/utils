@@ -262,7 +262,7 @@ def color_id_map(id_map):
     # Arguments
         id_map: uint, shape (w,h)
 
-    # Return:
+    # Return
         img: float [0,1], shape (w,h,3)
     """
     img = np.zeros((*id_map.shape, 3), dtype='float32')
@@ -276,6 +276,21 @@ def color_id_map(id_map):
         img[id_map==i] = c
     return img
 
+def overlay_id_map(img, id_map, alpha=0.5):
+    """
+    # Arguments
+        img: uint8 (h,w,3)
+        id_map: uint (h,w)
+        alpha: float [0, 1] strength of overlay
+
+    # Return
+        overlay: uint8 (h,w,3)
+    """
+    overlay = (1-alpha)*img + alpha*color_id_map(id_map)*255
+    overlay = np.where(id_map[...,None], overlay, img)
+    overlay = np.clip(overlay, 0, 255)
+    return np.uint8(overlay)
+
 
 def depth_as_rgb(img):
     vmin, vmax = np.min(img), np.max(img)
@@ -286,15 +301,14 @@ def depth_as_rgb(img):
     return np.uint8((img-vmin)/(vmax-vmin)*255)
 
 
-def write_mask(file_path, mask):
-    cv2.imwrite(file_path, np.uint8(mask>0)*255)
+def read_rgb(file_path):
+    return cv2.imread(file_path, cv2.IMREAD_UNCHANGED)[...,(2,1,0)]
 
 def write_rgb(file_path, img):
-    cv2.imwrite(file_path, img[...,(2,1,0)])
+    cv2.imwrite(file_path, img[...,(2,1,0)], [int(cv2.IMWRITE_JPEG_QUALITY), 98])
 
-def write_depth_as_rgb(file_path, img):
-    rgb = depth_as_rgb(img)
-    cv2.imwrite(file_path, rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+def write_mask(file_path, mask):
+    cv2.imwrite(file_path, np.uint8(mask>0)*255)
 
 
 # legacy
