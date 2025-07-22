@@ -14,10 +14,10 @@ profiling, measuring of execution time, JSON investigation, etc.
 ## geometry.py
 Transformations related to the SE(3) group
 
-Homogenious Transformations, Euler-Angles, Quaternions, Axis-Angle Representation, Vector projection, etc.
+Homogenious Transformations, Euler-Angles, Quaternions, Axis-Angle Representation, Hand-Eye Calibration, Vector projection etc.
 
 ## kinematics.py
-Damped Least Squares Inverse (DLS), Singularity Robust Inverse (SR), Hand-Eye Calibration
+Damped Least Squares Inverse (DLS), Singularity Robust Inverse (SR)
 
 ## logging.py
 Class for logging NN training and functions for plotting, originally designed for TensorFlow
@@ -31,7 +31,7 @@ Shrikage loss, Smooth L1 loss, Distance-IoU loss, Cross Entropy loss, Focal loss
 Cosine Similarity, Intersection over Union, etc.
 
 ## model.py
-Functions related to Keras Models
+Functions related to Keras models
 
 activation and parameter statistics, etc.
 
@@ -44,6 +44,9 @@ for dense CNN output, etc.
 Visaulizations using pythreejs
 
 Frames, Boxes, Point Clouds, etc.
+
+## training.py
+Classes and functions related to training Keras models
 
 ## vision.py
 Transformation related to color images, depht maps and point clouds
