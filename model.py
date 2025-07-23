@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import h5py
 import os
 
+from glob import glob
 from keras import backend as K
 from keras.models import Model
 
@@ -199,53 +200,105 @@ def plot_parameter_statistic(model,
     plt.show()
 
 
-def plot_kernels(model, distribution=False):
+def plot_kernels(model, distribution=False, limit=None):
     # plots kernel mean and std for all layers in a model
 
     layer_names = []
-    w = []
+    ww = []
     for l in model.layers:
         if hasattr(l, 'kernel'):
             layer_names.append(l.name)
-            w.append(np.array(l.kernel).ravel())
+            ww.append(np.array(l.kernel))
     num_layers = len(layer_names)
 
     if distribution:
-        plt.figure(figsize=(6, 1.4*num_layers))
+        plt.figure(figsize=(6, 1.2*num_layers))
         for i in range(num_layers):
             plt.subplot(num_layers, 1, i+1)
-            plt.hist(w[i], bins=100)
-            plt.title(layer_names[i])
+            plt.hist(np.ravel(ww[i]), bins=100);
+            plt.axvline([np.mean(ww[i])], color='r')
+            plt.text(0.01, 0.9, '%s'%(layer_names[i]), ha='left', va='top', transform=plt.gca().transAxes)
+            if limit: plt.xlim(-limit,limit)
+            plt.yticks([])
         plt.tight_layout()
         plt.show()
     else:
-        y_mean, y_std = [np.mean(a) for a in w], [np.std(a) for a in w]
+        y_mean, y_std = [np.mean(w) for w in ww], [np.std(w) for w in ww]
         x = np.arange(num_layers)
-
         plt.figure(figsize=(12, 0.4+0.3*num_layers))
         plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
         plt.yticks(x, layer_names, rotation=0)
-        plt.grid(True)
         ax = plt.gca()
         ax.invert_yaxis()
+        if limit: plt.xlim(-limit,limit)
+        plt.grid(True)
         plt.show()
 
 
-def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=False):
+def plot_weights_over_epochs(weight_dir):
+
+    if isinstance(weight_dir, str):
+        file_names = sorted(glob(f"{weight_dir}/*.weights.h5"))
+    else:
+        file_names = weight_dir
+
+    stats = { 'name': [], 'mean': [], 'std': [] }
+
+    def visit_group(name, obj):
+        if isinstance(obj, h5py.Group) and name.endswith("/vars"):
+            name = obj.attrs['name']
+            if name.startswith('conv'):
+                w = np.asarray(obj['0'])
+                if name not in stats['name']:
+                    stats['name'].append(name)
+                    stats['mean'].append([])
+                    stats['std'].append([])
+                idx = stats['name'].index(name)
+                stats['mean'][idx].append(np.mean(w))
+                stats['std'][idx].append(np.std(w))
+
+    for n in file_names:
+        with h5py.File(n, 'r') as f:
+            f.visititems(visit_group)
+
+    stats['mean'] = np.asarray(stats['mean'])
+    stats['std'] = np.asarray(stats['std'])
+    #return stats
+
+    layer_names = stats['name']
+    num_layers = len(layer_names)
+    num_epochs = stats['mean'].shape[-1]
+    x = np.arange(num_layers)
+
+    plt.figure(figsize=(6, 0.4+(0.06+0.12*num_epochs)*num_layers))
+    for i in range(num_epochs):
+        y_mean = stats['mean'][:,i]
+        y_std = stats['std'][:,i]
+        plt.errorbar(y_mean, x+i/(num_epochs+1), xerr=y_std, fmt='|', label=str(i), alpha=0.9, markersize=7, capsize=3)
+    plt.yticks(x, layer_names, rotation=0)
+    plt.ylim(-2/(num_epochs+1), num_layers)
+    plt.grid(True)
+    ax = plt.gca()
+    ax.invert_yaxis()
+    plt.show()
+
+
+def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=False, limit=None):
     # plots activation mean and std for all layers in a model
 
-    #outputs = [l.output for l in model.layers]
     outputs = [l.output[0] if type(l.output) is list else l.output for l in model.layers]
     tmp_model = Model(model.input, outputs)
     layer_names = [l.name for l in model.layers]
     input_shape = model.input_shape[1:]
     num_layers = len(layer_names)
 
+    #random_x = lambda shape: np.float32(np.random.uniform(-1,1, size=shape))
+    random_x = lambda shape: np.float32(np.clip(np.random.normal(size=shape), -3, 3))
+
     if type(model.input_shape) is tuple:
-        #x = np.float32(np.random.uniform(-1,1, size=[batch_size, *model.input_shape[1:]]))
-        x = np.float32(np.clip(np.random.normal(size=[batch_size, *model.input_shape[1:]]), -3, 3))
+        x = [random_x([batch_size, *model.input_shape[1:]])]
     else:
-        x = [np.float32(np.clip(np.random.normal(size=[batch_size, *s[1:]]), -3, 3)) for s in model.input_shape]
+        x = [random_x([batch_size, *s[1:]]) for s in model.input_shape]
 
     y = tmp_model(x)
     y = [np.array(a).flatten() for a in y]
@@ -258,7 +311,10 @@ def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=Fal
         for i in range(num_layers):
             plt.subplot(num_layers, 1, i+1)
             plt.hist(y[i], bins=100)
-            plt.title(layer_names[i])
+            plt.axvline([np.mean(y[i])], color='r')
+            plt.text(0.99, 0.95, '%s'%(layer_names[i]), ha='right', va='top', transform=plt.gca().transAxes)
+            if limit: plt.xlim(-limit,limit)
+            plt.yticks([])
         plt.tight_layout()
         plt.show()
     else:
@@ -268,9 +324,11 @@ def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=Fal
         plt.figure(figsize=(6, 0.4+0.2*num_layers))
         plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
         plt.yticks(x, layer_names, rotation=0)
-        plt.grid(True)
+        plt.ylim(-1, num_layers)
         ax = plt.gca()
         ax.invert_yaxis()
+        if limit: plt.xlim(-limit,limit)
+        plt.grid(True)
         plt.show()
 
 
@@ -324,52 +382,6 @@ def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
     ax.invert_yaxis()
 
     plt.tight_layout()
-    plt.show()
-
-
-def plot_weights_over_epochs(weight_dir):
-
-    if isinstance(weight_dir, str):
-        file_names = sorted(glob(f"{weight_dir}/*.weights.h5"))
-
-    stats = { 'name': [], 'mean': [], 'std': [] }
-
-    def visit_group(name, obj):
-        if isinstance(obj, h5py.Group) and name.endswith("/vars"):
-            name = obj.attrs['name']
-            if name.startswith('conv'):
-                w = np.asarray(obj['0'])
-                if name not in stats['name']:
-                    stats['name'].append(name)
-                    stats['mean'].append([])
-                    stats['std'].append([])
-                idx = stats['name'].index(name)
-                stats['mean'][idx].append(np.mean(w))
-                stats['std'][idx].append(np.std(w))
-
-    for n in file_names:
-        with h5py.File(n, 'r') as f:
-            f.visititems(visit_group)
-
-    stats['mean'] = np.asarray(stats['mean'])
-    stats['std'] = np.asarray(stats['std'])
-    #return stats
-
-    layer_names = stats['name']
-    num_layers = len(layer_names)
-    num_epochs = stats['mean'].shape[-1]
-    x = np.arange(num_layers)
-
-    plt.figure(figsize=(6, 0.4+0.12*num_epochs*num_layers))
-    for i in range(num_epochs):
-        y_mean = stats['mean'][:,i]
-        y_std = stats['std'][:,i]
-        plt.errorbar(y_mean, x+i/(num_epochs+1), xerr=y_std, fmt='|', label=str(i), alpha=0.9, markersize=7, capsize=3)
-    plt.yticks(x, layer_names, rotation=0)
-    plt.ylim(-0.5, num_layers+0.5)
-    plt.grid(True)
-    ax = plt.gca()
-    ax.invert_yaxis()
     plt.show()
 
 
