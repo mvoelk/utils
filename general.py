@@ -4,7 +4,7 @@ Copyright © 2017 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
-import re, random, time
+import os, re, random, time, shutil
 import cProfile
 
 
@@ -116,4 +116,19 @@ def random_derangement(n):
             if v[0] != 0:
                 return tuple(v)
 
+
+def copy_files(names, dest_dir):
+    """Copies a list of files and directories recursively to given destination directory
+    """
+
+    os.makedirs(dest_dir, exist_ok=True)
+
+    for n in names:
+        if os.path.isfile(n):
+            shutil.copy2(n, dest_dir)
+        elif os.path.isdir(n):
+            dest_path = os.path.join(dest_dir, os.path.basename(n))
+            shutil.copytree(n, dest_path, dirs_exist_ok=True)
+        else:
+            print(f"Warning: '{n}' does not exist or is not a file/directory")
 
