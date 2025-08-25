@@ -102,6 +102,17 @@ def print_h5_info(file_path):
     with h5py.File(file_path, 'r') as f:
         f.visititems(print_attrs)
 
+def print_array_info(a):
+    # use also np.info()
+    import numpy as np
+    s = '%-8s %s'
+    print(s%('shape', a.shape))
+    print(s%('dtype', a.dtype))
+    for f in [np.min, np.max, np.mean, np.std]:
+        print(s %(f.__name__, f(a)))
+    for f in [np.isinf, np.isnan]:
+        print(s %(f.__name__, np.any(f(a))))
+
 
 def random_derangement(n):
     while True:
