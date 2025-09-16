@@ -7,6 +7,29 @@ Code was taken from https://github.com/mvoelk/utils
 import numpy as np
 
 
+def dh2trafo(d, r, alpha, theta, modified=False):
+    """Creates a homogeneous matrix from given Denavit Hartenberg parameters"""
+
+    sα, cα = np.sin(alpha), np.cos(alpha)
+    sθ, cθ = np.sin(theta), np.cos(theta)
+    if modified:
+        T = np.array([
+            [cθ,    -sθ,   0,   r    ],
+            [sθ*cα, cθ*cα, -sα, -d*sα],
+            [sθ*sα, cθ*sα,  cα,  d*cα],
+            [0,     0,     0,   1    ],
+        ])
+    else:
+        T = np.array([
+            [cθ, -sθ*cα, sθ*sα, r*cθ],
+            [sθ, cθ*cα, -cθ*sα, r*sθ],
+            [0,  sα,     cα,    d   ],
+            [0,  0,      0,     1   ],
+        ])
+    return T
+
+
+
 def dlsinv(A, d=0, rcond=1e-15):
     """Damped Least Squares Inverse (DLS)
 
