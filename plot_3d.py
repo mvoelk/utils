@@ -21,6 +21,14 @@ astuple = lambda M: tuple(np.round(np.reshape(M, (-1,)), 6))
 random_color = lambda : '#%02x%02x%02x'%tuple(np.random.randint(0,256, size=3))
 
 
+def update_pose(obj, T=None, p=np.zeros(3), R=np.eye(3)):
+    if T is not None:
+        p, R = T[:3,3], T[:3,:3]
+    obj.position = astuple(p)
+    obj.quaternion = astuple(rot2quat(R, True))
+    return obj
+
+
 def new_arrow(l=0.1, r=0.003, r2=0.006, l2=0.012, color='#ff0000', segments=32):
     material = MeshBasicMaterial(color=color)
 
@@ -40,9 +48,6 @@ def new_arrow(l=0.1, r=0.003, r2=0.006, l2=0.012, color='#ff0000', segments=32):
 
 def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003, segments=16):
 
-    if T is not None:
-        p, R = T[:3,3], T[:3,:3]
-
     arrow_x = new_arrow(l, r, 2*r, 4*r, color='#ff0000', segments=segments)
     arrow_y = new_arrow(l, r, 2*r, 4*r, color='#00ff00', segments=segments)
     arrow_z = new_arrow(l, r, 2*r, 4*r, color='#0000ff', segments=segments)
@@ -57,8 +62,7 @@ def new_axes(T=None, p=np.zeros(3), R=np.eye(3), l=0.1, r=0.003, segments=16):
     axes = Object3D()
     axes.add([arrow_x, arrow_y, arrow_z])
 
-    axes.position = astuple(p)
-    axes.quaternion = astuple(rot2quat(R, True))
+    update_pose(axes, T, p, R)
 
     return axes
 
@@ -90,7 +94,7 @@ def new_cloud(pts, colors=None, color=None, point_size=0.001):
     return Points(geometry=geometry, material=material)
 
 
-def new_mesh(mesh, color='#333333'):
+def new_mesh(mesh, T=None, p=np.zeros(3), R=np.eye(3), color='#333333'):
     """
     # Arguments
         mesh: Trimesh object
@@ -117,21 +121,18 @@ def new_mesh(mesh, color='#333333'):
         flatShading=True, transparent=False, opacity=0.8, wireframe=False,
         #emissive='#333333', emissiveIntensity=0.5,
     )
-    return Mesh(geometry=geometry, material=material)
+    mesh = Mesh(geometry=geometry, material=material)
+    update_pose(mesh, T, p, R)
+    return mesh
 
 
 def new_frame(T=None, p=np.zeros(3), R=np.eye(3), frame_size=0.05):
-    if T is not None:
-        p, R = T[:3,3], T[:3,:3]
     frame = AxesHelper(frame_size)
-    frame.position = astuple(p)
-    frame.quaternion = astuple(rot2quat(R, True))
+    update_pose(frame, T, p, R)
     return frame
 
 
 def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, color='#ff0000', segments=8):
-    if T is not None:
-        p, R = T[:3,3], T[:3,:3]
     
     s, l, h = box_size
     
@@ -174,41 +175,26 @@ def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, col
     mesh_l.position = pos
     box.add(mesh_l)
     
-    box.position = astuple(p)
-    box.quaternion = astuple(rot2quat(R, True))
+    update_pose(box, T, p, R)
     
     return box
 
 def new_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), color='#ff0000', opacity=0.5):
     w,h,d = box_size
-    if T is not None:
-        p, R = T[:3,3], T[:3,:3]
     geometry = BoxGeometry(width=w, height=h, depth=d, widthSegments=1, heightSegments=1, depthSegments=1)
     material = MeshPhongMaterial(color=color, opacity=opacity, transparent=True, wireframe=False)
     box = Mesh(geometry=geometry, material=material)
-    box.position = astuple(p)
-    box.quaternion = astuple(rot2quat(R, True))
+    update_pose(box, T, p, R)
     return box
 
-def new_range(xyz_range, color='#00ff00', opacity=0.25):
-    x_range, y_range, z_range = xyz_range
-    x_min, x_max = x_range
-    y_min, y_max = y_range
-    z_min, z_max = z_range
-    geometry = BoxGeometry(width=(x_max-x_min), height=(y_max-y_min), depth=(z_max-z_min), widthSegments=1, heightSegments=1, depthSegments=1)
-    material = MeshPhongMaterial(color=color, opacity=opacity, transparent=True, wireframe=False)
-    range_box = Mesh(geometry=geometry, material=material)
-    range_box.position = ((x_min+x_max)/2, (y_min+y_max)/2, (z_min+z_max)/2)
-    range_box.quaternion = (0,0,0,1)
+def new_range(xyz_range, T=None, p=np.zeros(3), R=np.eye(3), color='#00ff00', opacity=0.25):
+    # xyz_range: [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
+    xyz_min, xyz_max = np.float32(xyz_range).T
+    box = new_box(xyz_max-xyz_min, p=(xyz_min+xyz_max)/2, color=color, opacity=opacity)
+    range_box = Object3D()
+    range_box.add(box)
+    update_pose(range_box, T, p, R)
     return range_box
-
-
-def update_pose(frame, T=None, p=np.zeros(3), R=np.eye(3)):
-    if T is not None:
-        p, R = T[:3,3], T[:3,:3]
-    frame.position = astuple(p)
-    frame.quaternion = astuple(rot2quat(R, True))
-    return frame
 
 
 def show_cloud(xyz, rgb=None, Tcw=None, 
