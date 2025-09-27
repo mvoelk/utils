@@ -198,7 +198,9 @@ def new_range(xyz_range, T=None, p=np.zeros(3), R=np.eye(3), color='#00ff00', op
 
 
 def show_cloud(xyz, rgb=None, Tcw=None, 
-               frames_in_world=[], frames_in_camera=[], ranges_in_world=[], ranges_in_camera=[],
+               frames_in_world=[], frames_in_camera=[],
+               ranges_in_world=[], ranges_in_camera=[],
+               boxes_in_world=[], boxes_in_camera=[],
                meshes_in_world=[], meshes_in_camera=[],
                width=800, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
     """Displays a point cloud in jupyter notebook
@@ -211,47 +213,55 @@ def show_cloud(xyz, rgb=None, Tcw=None,
         Tcw: camera frame, homogeneous transformation, shape (4, 4)
         frames_in_world: homogeneous transformations, shape (n, 4, 4)
         frames_in_camera: homogeneous transformations, shape (n, 4, 4)
-        ranges_in_world: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2)
-        ranges_in_camera: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2)
-        meshes_in_world: list of trimesh Trimesh objects, placed at frames_in_world, elements can be None
-        meshes_in_camera: list of trimesh Trimesh objects, placed at frames_in_camera, elements can be None
+
+        ranges_in_world: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2), or tuple with trafos
+        ranges_in_camera: [[[x_min, x_max], [y_min, y_max], [z_min, z_max]], ...], shape (n, 3, 2), or tuple with trafos
+        boxes_in_world: [[w, h, d], ...], shape (n, 3), or tuple with trafos, extents in (x, y, z)
+        boxes_in_camera: [[w, h, d], ...], shape (n, 3), or tuple with trafos, extents in (x, y, z)
+        meshes_in_world: list of trimesh Trimesh objects, or tuple with trafos
+        meshes_in_camera: list of trimesh Trimesh objects, or tuple with trafos
     """
 
-    frames_in_world = np.reshape(frames_in_world, (-1,4,4))
-    frames_in_camera = np.reshape(frames_in_camera, (-1,4,4))
-    ranges_in_world = np.reshape(ranges_in_world, (-1,3,2))
-    ranges_in_camera = np.reshape(ranges_in_camera, (-1,3,2))
+    def split_objects_trafos(items):
+        if type(items) == tuple and len(items) == 2:
+            return zip(*items)
+        else:
+            return zip(items, [np.eye(4) for i in items])
 
     Tw = trafo(R=rotx(-np.pi/2))
 
     if Tcw is None:
         Tcw = np.eye(4)
         Tw = trafo(R=rotz(np.pi))
-    
+
     n = cloud_subsampling
     xyz = xyz.reshape(-1,3)[::n,:]
     if rgb is not None:
         rgb = rgb.reshape(-1,3)[::n,:] / 255
     cloud = new_cloud(xyz, rgb, point_size=point_size)
-    
+
     cloud_frame = new_frame(frame_size=frame_size)
     cloud_frame.add(cloud)
-    
+
+
     cam_frame = new_frame(Tcw, frame_size=frame_size)
     cam_frame.add(cloud_frame)
-    
-    for i, T in enumerate(frames_in_camera):
+
+    for T in frames_in_camera:
         #cam_frame.add(new_frame(T, frame_size=frame_size))
         axes = new_axes(T, l=frame_size, r=0.03*frame_size)
-        try:
-            if len(meshes_in_camera) and meshes_in_camera[i] is not None:
-                axes.add(new_mesh(meshes_in_camera[i], None))
-        except Exception as e:
-            print(e)
         cam_frame.add(axes)
-    
-    for xyz_range in ranges_in_camera:
-        cam_frame.add(new_range(xyz_range))
+
+    for xyz_range, T in split_objects_trafos(ranges_in_camera):
+        xyz_range = np.reshape(xyz_range, (3,2))
+        cam_frame.add(new_range(xyz_range, T))
+
+    for wdh, T in split_objects_trafos(boxes_in_camera):
+        cam_frame.add(new_box(wdh, T, color='#00ff00', opacity=0.25))
+
+    for mesh, T in split_objects_trafos(meshes_in_camera):
+        cam_frame.add(new_mesh(mesh, T, color=None))
+
 
     world_frame = new_frame(Tw, frame_size=frame_size)
     world_frame.add(cam_frame)
@@ -259,15 +269,18 @@ def show_cloud(xyz, rgb=None, Tcw=None,
     for T in frames_in_world:
         #world_frame.add(new_frame(T, frame_size=frame_size))
         axes = new_axes(T, l=frame_size, r=0.03*frame_size)
-        try:
-            if len(meshes_in_world) and meshes_in_world[i] is not None:
-                axes.add(new_mesh(meshes_in_world[i], None))
-        except Exception as e:
-            print(e)
         world_frame.add(axes)
-    
-    for xyz_range in ranges_in_world:
-        world_frame.add(new_range(xyz_range))
+
+    for xyz_range, T in split_objects_trafos(ranges_in_world):
+        xyz_range = np.reshape(xyz_range, (3,2))
+        world_frame.add(new_range(xyz_range, T))
+
+    for wdh, T in split_objects_trafos(boxes_in_world):
+        world_frame.add(new_box(wdh, T, color='#00ff00', opacity=0.25))
+
+    for mesh, T in split_objects_trafos(meshes_in_world):
+        world_frame.add(new_mesh(mesh, T, color=None))
+
 
     cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0,
         children=[
