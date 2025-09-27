@@ -12,6 +12,7 @@ def dh2trafo(d, r, alpha, theta, modified=False):
 
     sα, cα = np.sin(alpha), np.cos(alpha)
     sθ, cθ = np.sin(theta), np.cos(theta)
+
     if modified:
         T = np.array([
             [cθ,    -sθ,   0,   r    ],
@@ -26,6 +27,7 @@ def dh2trafo(d, r, alpha, theta, modified=False):
             [0,  sα,     cα,    d   ],
             [0,  0,      0,     1   ],
         ])
+
     return T
 
 

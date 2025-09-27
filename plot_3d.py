@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2024 Markus Völk
+Copyright © 2015 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
@@ -287,7 +287,7 @@ def show_cloud(xyz, rgb=None, Tcw=None,
         children=[
             DirectionalLight(color='white', position=(3,5,1), intensity=0.5)
         ])
-    
+
     scene = Scene(
         children=[cam, world_frame,
             AmbientLight(color='#777777'),
@@ -298,13 +298,15 @@ def show_cloud(xyz, rgb=None, Tcw=None,
     #xyz_ = np.reshape(xyz, (-1,3))
     #Tt = Tc @ trafo(t=np.mean(xyz_[xyz_[:,2]>1e-5], axis=0))
     Tt = Tc @ trafo(t=(0,0,2))
-    
+
     target = astuple(Tt[:3,3])
     orbit = OrbitControls(controlling=cam, target=target)
-    
+
     renderer = Renderer(camera=cam, scene=scene, controls=[orbit], width=width, height=height)
 
     cam.position = astuple(Tc[:3,3])
-    cam.quaternion = astuple(rot2quat(Tc[:3,:3], False)*[-1,-1,1,1]) # but why?
-    
+    #cam.quaternion = astuple(rot2quat(Tc[:3,:3], False)*[-1,-1,1,1]) # but why?
+    cam.setRotationFromMatrix(np.ravel(Tc[:3,:3].T))
+    cam.lookAt(target) # required to update view
+
     return renderer
