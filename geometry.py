@@ -7,6 +7,7 @@ Code was taken from https://github.com/mvoelk/utils
 
 import numpy as np
 
+seqs = ('xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz', 'zyx', 'zyz')
 
 def rot2quat(R, xyzw=False):
     '''Convets a Rotation Matrix to a Unit Quaternion'''
@@ -41,7 +42,8 @@ def euler2rot(angles, axes='xyz', fixed=False):
     '''Converts arbitrary Euler Angles to Rotation Matrix
 
         V-Rep: 'xyz', False
-        roll-pitch-yaw: 'xyz', True
+        Roll-Pitch-Yaw, ROS: 'xyz', True
+        Yaw-Pitch-Roll: 'zyx' False
     '''
     Rs = [[rotx, roty, rotz]['xyz'.index(c)](a) for a, c in zip(angles, axes.lower())]
     if fixed:
@@ -52,7 +54,8 @@ def rot2euler(R, axes='xyz', fixed=False, s=1):
     '''Converts a Rotation Matrix to Euler Angles
 
         V-Rep: 'xyz', False
-        roll-pitch-yaw: 'xyz', True
+        Roll-Pitch-Yaw, ROS: 'xyz', True
+        Yaw-Pitch-Roll: 'zyx' False
     '''
     # for general solution see
     # https://github.com/ros/geometry/blob/noetic-devel/tf/src/tf/transformations.py#L1031
@@ -80,6 +83,11 @@ def rot2euler(R, axes='xyz', fixed=False, s=1):
         ])
     else:
         return None
+
+def rot2euler_sp(R, axes='xyz', fixed=True):
+    from scipy.spatial.transform import Rotation
+    seq = axes.lower() if fixed else axes.upper()
+    return Rotation.from_matrix(R).as_euler(seq, degrees=False)
 
 def rot2axisangle(R):
     eps = 1e-6
