@@ -117,7 +117,7 @@ def new_mesh(mesh, T=None, p=np.zeros(3), R=np.eye(3), color='#333333'):
         }
     )
     material = MeshPhongMaterial(
-        color=color, specular='#ffffff', roughness=0.9, metalness=0.1, shininess=1, 
+        color=color, specular='#ffffff', roughness=0.9, metalness=0.1, shininess=1,
         flatShading=True, transparent=False, opacity=0.8, wireframe=False,
         #emissive='#333333', emissiveIntensity=0.5,
     )
@@ -133,15 +133,15 @@ def new_frame(T=None, p=np.zeros(3), R=np.eye(3), frame_size=0.05):
 
 
 def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, color='#ff0000', segments=8):
-    
+
     s, l, h = box_size
-    
+
     pos = (-s/2, -l/2, -h/2)
-    
+
     material = MeshBasicMaterial(color=color)
-    
+
     box = Object3D()
-    
+
     geometry_h = CylinderGeometry(d, d, h, segments)
     mesh_h = Object3D()
     for pm in [(0,-h/2,0), (s,-h/2,0), (0,-h/2,l), (s,-h/2,l)]:
@@ -163,7 +163,7 @@ def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, col
     mesh_s.quaternion = astuple(rot2quat(rotz(-np.pi/2), True))
     mesh_s.position = pos
     box.add(mesh_s)
-    
+
     geometry_l = CylinderGeometry(d, d, l, segments)
     mesh_l = Object3D()
     for pm in [(0,l/2,0), (s,l/2,0), (0,l/2,h), (s,l/2,h)]:
@@ -174,9 +174,9 @@ def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, col
     #mesh_l.quaternion = astuple(rot2quat(rotx(0), True))
     mesh_l.position = pos
     box.add(mesh_l)
-    
+
     update_pose(box, T, p, R)
-    
+
     return box
 
 def new_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), color='#ff0000', opacity=0.5):
@@ -197,7 +197,7 @@ def new_range(xyz_range, T=None, p=np.zeros(3), R=np.eye(3), color='#00ff00', op
     return range_box
 
 
-def show_cloud(xyz, rgb=None, Tcw=None, 
+def show_cloud(xyz, rgb=None, Tcw=None,
                frames_in_world=[], frames_in_camera=[],
                ranges_in_world=[], ranges_in_camera=[],
                boxes_in_world=[], boxes_in_camera=[],
@@ -282,7 +282,7 @@ def show_cloud(xyz, rgb=None, Tcw=None,
         world_frame.add(new_mesh(mesh, T, color=None))
 
 
-    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0,
+    cam = PerspectiveCamera(up=[0,1,0], near=0.1, far=20.0, aspect=width/height,
         children=[
             DirectionalLight(color='white', position=(3,5,1), intensity=0.5)
         ])
