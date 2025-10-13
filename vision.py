@@ -149,25 +149,32 @@ def crop_and_scale_perspective(img, crop_xy=[0,0], crop_wh=[1000000,1000000], sc
         img = cv2.resize(img, (int(w2), int(h2)), interpolation=interpolation)
         return img
 
+
 def normals_from_xyz(xyz, kernel_size=3, invalid_value=(0,0,0)):
     """Computes the normals of a structured point cloud
-    
+
+    We assume that the point cloud stems from a 3D camera, so the z component of the normals point to the origin.
+
     # Arguments
         xyz: shape (h,w,3)
+
+    # Return
+        normals: shape (h,w,3)
     """
-    
+
     kernel = np.ones((kernel_size,kernel_size), dtype='float32')
     v = np.sum(np.abs(xyz), axis=-1)
-    valid_mask = np.isfinite(v) & (v > 0)
+    valid_mask = np.isfinite(v) & (v > 1e-8)
     invalid_mask = cv2.filter2D(np.float32(~valid_mask), -1, kernel) != 0
-    
-    gy = cv2.Sobel(xyz, cv2.CV_64F, 1, 0, ksize=kernel_size)
-    gx = cv2.Sobel(xyz, cv2.CV_64F, 0, 1, ksize=kernel_size)
-    normals = np.cross(gx, gy, axis=-1)
-    normals = normals / (np.linalg.norm(normals, axis=-1, keepdims=True)+1e-10)
 
+    gx = cv2.Sobel(xyz, cv2.CV_64F, 0, 1, ksize=kernel_size)
+    gy = cv2.Sobel(xyz, cv2.CV_64F, 1, 0, ksize=kernel_size)
+    normals = np.cross(gx, gy, axis=-1)
+    normals = normals / np.maximum(1e-10, np.linalg.norm(normals, axis=-1, keepdims=True))
     normals[invalid_mask] = invalid_value
+
     return normals
+
 
 def center_of_mass(mask):
     """Calculates the center of mass of a mask"""
@@ -178,6 +185,58 @@ def center_of_mass(mask):
         return cx, cy
     else:
         return None
+
+def porject_box_mask(T_box, box_size, K, image_size):
+    """Projects a box or cuboid from the 3D into an image mask
+
+    # Arguments
+        T_box: homogeneous transformation, center of box
+        box_size: size in x, y and z dimension
+        image_size: width, height
+
+    Return
+        img: shape (h, w)
+    """
+
+    xyz = np.array([
+        [-1., -1., -1.],
+        [ 1., -1., -1.],
+        [ 1.,  1., -1.],
+        [-1.,  1., -1.],
+        [-1., -1.,  1.],
+        [ 1., -1.,  1.],
+        [ 1.,  1.,  1.],
+        [-1.,  1.,  1.],
+    ]) * 0.5 * box_size
+
+    # transform_points
+    xyz = np.concatenate([xyz,np.ones_like(xyz[...,:1])], axis=-1)
+    xyz = T_box @ xyz[...,None]
+    xyz = np.ascontiguousarray(xyz[...,:3,0])
+
+    rvec = tvec = np.zeros((3, 1), dtype='float32')
+
+    xy, _ = cv2.projectPoints(xyz, rvec, tvec, K, None)
+    xy = xy.astype(int)
+
+    w, h = image_size
+    mask = np.zeros((h,w), dtype='uint8')
+
+    faces = [
+        [0, 1, 2, 3],
+        [4, 5, 6, 7],
+        [0, 1, 5, 4],
+        [1, 2, 6, 5],
+        [2, 3, 7, 6],
+        [3, 0, 4, 7]
+    ]
+
+    for face in faces:
+        pts = xy[face].reshape((-1, 1, 2))
+        cv2.fillConvexPoly(mask, pts, 255)
+
+    return mask
+
 
 def bilinear_interpolate_points(img, xy):
     """
