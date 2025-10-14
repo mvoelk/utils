@@ -9,7 +9,7 @@ import numpy as np
 
 def dh2trafo(d, r, alpha, theta, modified=False):
     """Creates a homogeneous matrix from given Denavit Hartenberg parameters"""
-
+    
     sα, cα = np.sin(alpha), np.cos(alpha)
     sθ, cθ = np.sin(theta), np.cos(theta)
 
@@ -31,94 +31,53 @@ def dh2trafo(d, r, alpha, theta, modified=False):
     return T
 
 
-
-def dlsinv(A, d=0, rcond=1e-15):
+def dlsinv(J, d=0.1, w_0=0.01):
     """Damped Least Squares Inverse (DLS)
 
     # Arguments
-        A : array_like, shape (M, N)
-            Matrix to be inverted
-        d : float, optional
-            Damping factor
-        rcond : float
-            Cutoff for small singular values.
-            Singular values smaller than
-            `rcond` * largest_singular_value
-            are set to zero.
+        J: array, shape (m, n), Matrix to be inverted
+            for the typical robot case m ≤ n
+        d: float, Damping factor (Nakamura, 1986)
+            if 0 or None, least squares solution is calculated
+        w_0: float, Manipulability threshold (Yoshikawa, 1985)
+            if 0 or None, damped least squares solution is calculated
+            otherwise an adaptive damping strategy is used
 
-    # Returns
-        B : array, shape (N, M)
-            DLS inverse of A
+    # Return
+        array, shape (n, m), DLS inverse of J
     """
 
-    U, s, Vt = np.linalg.svd(A, full_matrices=False)
-    m = U.shape[0]
-    n = Vt.shape[1]
-    r = min(n, m)
-    cutoff = rcond*np.max(s)
+    # cutoff for small singular values to avoid numerical issuses, division by zero etc.
+    # singular values smaller then rcond * largest_singular_value are set to zero
+    rcond = 1e-12
+    
+    m, n = J.shape
+    #r = min(m,n) # rank of J
 
-    if d == 0:
+    U, s, Vt = np.linalg.svd(J, full_matrices=False)
+    
+    r = sum(s > rcond*np.max(s))
+
+    s[r:] = 0.0
+
+    if not d:
         # least squares
-        for i in range(r):
-            if s[i] < cutoff:
-                s[i] = 0.0
-            else:
-                s[i] = 1./s[i]
-    else:
+        s[:r] = 1. / s[:r]
+    elif not w_0:
         # damped least squares
-        d = d*d
-        for i in range(r):
-            if s[i] < cutoff:
-                s[i] = 0.0
-            else:
-                s[i] = s[i]/(s[i]*s[i]+d)
-
-    B = np.dot(Vt.T, np.multiply(s[:, np.newaxis], U.T))
-    return B
-
-
-def srinv(A, d=0.1, w_0=1.0, rcond=1e-15):
-    """Singularity Robust Inverse (SR-Inverse) according to [1]
-
-    [1] Y. Nakamura and H. Hanafusa, "Inverse Kinematic Solutions With
-        Singularity Robustness for Robot Manipulator Control,"
-        J. Dyn. Syst. Meas. Control, vol. 108, no. 3, p. 163, Sep. 1986.
-
-    # Arguments
-        A : array_like, shape (M, N)
-            Matrix to be inverted
-        d : float, optional
-            Damping factor
-        w_0 : float, optional
-            Manipulability threshold
-        rcond : float
-            Cutoff for small singular values.
-            Singular values smaller than
-            `rcond` * largest_singular_value
-            are set to zero.
-
-    # Returns
-        B : array, shape (N, M)
-            SR-Inverse of A
-    """
-
-    U, s, Vt = np.linalg.svd(A, full_matrices=False)
-    m = U.shape[0]
-    n = Vt.shape[1]
-    r = min(n, m)
-    cutoff = rcond*np.max(s)
-
-    # singulartity robust
-    d = d*d
-    w = np.sqrt(np.linalg.det(np.dot(A,A.T)))
-    for i in range(r):
-        if s[i] < cutoff:
-            s[i] = 0.0
+        s[:r] = s[:r] / (s[:r]*s[:r] + d*d)
+    else:
+        # adaptive damping
+        w = np.prod(s) # manipulability ω, same as sqrt(det(J@J.T))
+        if w < w_0:
+            # damping near singularities
+            s[:r] = s[:r] / (s[:r]*s[:r] + d*d*(1-w/w_0))
         else:
-            if w < w_0:
-                s[i] = s[i]/(s[i]*s[i]+d*(1-w/w_0))
+            # no damping far from singularies
+            s[:r] = 1. / s[:r]
 
-    B = np.dot(Vt.T, np.multiply(s[:, np.newaxis], U.T))
-    return B
+    Ji = Vt.T @ (s[:,None] * U.T)
+    
+    return Ji
 
 
