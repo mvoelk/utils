@@ -9,13 +9,26 @@ import numpy as np
 
 seqs = ('xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz', 'zyx', 'zyz')
 
+
+def skew(v):
+    x, y, z = v
+    S = np.array([[ 0, -z,  y],
+                  [ z,  0, -x],
+                  [-y,  x,  0]], dtype=float)
+    return S
+
+def unskew(S):
+    v = np.array([S[2,1], S[0,2], S[1,0]])
+    return v
+
+
 def rot2quat(R, xyzw=False):
     '''Convets a Rotation Matrix to a Unit Quaternion'''
-    qr = np.sqrt(max(1+R[0,0]+R[1,1]+R[2,2],0.0)) / 2
+    qr = 0.5 * np.sqrt(max(1+R[0,0]+R[1,1]+R[2,2],0.0))
     # 24.83 µs
-    qi = np.copysign(1/2 * np.sqrt(max(1+R[0,0]-R[1,1]-R[2,2],0.0)), R[2,1]-R[1,2])
-    qj = np.copysign(1/2 * np.sqrt(max(1-R[0,0]+R[1,1]-R[2,2],0.0)), R[0,2]-R[2,0])
-    qk = np.copysign(1/2 * np.sqrt(max(1-R[0,0]-R[1,1]+R[2,2],0.0)), R[1,0]-R[0,1])
+    qi = np.copysign(0.5 * np.sqrt(max(1+R[0,0]-R[1,1]-R[2,2],0.0)), R[2,1]-R[1,2])
+    qj = np.copysign(0.5 * np.sqrt(max(1-R[0,0]+R[1,1]-R[2,2],0.0)), R[0,2]-R[2,0])
+    qk = np.copysign(0.5 * np.sqrt(max(1-R[0,0]-R[1,1]+R[2,2],0.0)), R[1,0]-R[0,1])
     # 14.53 µs, faster but larger error
     #qi = (R[2,1] - R[1,2]) / (4*qr)
     #qj = (R[0,2] - R[2,0]) / (4*qr)
@@ -41,8 +54,8 @@ def quat2rot(q, xyzw=False):
 def euler2rot(angles, axes='xyz', fixed=False):
     '''Converts arbitrary Euler Angles to Rotation Matrix
 
-        V-Rep: 'xyz', False
-        Roll-Pitch-Yaw, ROS: 'xyz', True
+        V-Rep: 'xyz' False
+        Roll-Pitch-Yaw, ROS: 'xyz' True
         Yaw-Pitch-Roll: 'zyx' False
     '''
     Rs = [[rotx, roty, rotz]['xyz'.index(c)](a) for a, c in zip(angles, axes.lower())]
@@ -53,34 +66,35 @@ def euler2rot(angles, axes='xyz', fixed=False):
 def rot2euler(R, axes='xyz', fixed=False, s=1):
     '''Converts a Rotation Matrix to Euler Angles
 
-        V-Rep: 'xyz', False
-        Roll-Pitch-Yaw, ROS: 'xyz', True
+        V-Rep: 'xyz' False
+        Roll-Pitch-Yaw, ROS: 'xyz' True
         Yaw-Pitch-Roll: 'zyx' False
     '''
     # for general solution see
     # https://github.com/ros/geometry/blob/noetic-devel/tf/src/tf/transformations.py#L1031
 
     eps = 1e-6
-    if axes == 'xyz' and fixed:
-        sy = np.sqrt(max(R[0,0]*R[0,0]+R[1,0]*R[1,0], 0.0))
-        if sy < eps: # singular
-            return np.array([
-                np.arctan2(-R[1,2], R[1,1]),
-                np.arctan2(-R[2,0], sy),
-                0,
-            ])
+    if axes == 'xyz':
+        if fixed:
+            sy = np.sqrt(max(R[0,0]*R[0,0]+R[1,0]*R[1,0], 0.0))
+            if sy < eps: # singular
+                return np.array([
+                    np.arctan2(-R[1,2], R[1,1]),
+                    np.arctan2(-R[2,0], sy),
+                    0,
+                ])
+            else:
+                return np.array([
+                    np.arctan2(R[2,1], R[2,2]),
+                    np.arctan2(-R[2,0], sy),
+                    np.arctan2(R[1,0], R[0,0])
+                ])
         else:
             return np.array([
-                np.arctan2(R[2,1], R[2,2]),
-                np.arctan2(-R[2,0], sy),
-                np.arctan2(R[1,0], R[0,0])
+                np.arctan2(-s*R[1,2], s*R[2,2]),
+                np.arctan2(R[0,2], s*np.sqrt(max(1-R[0,2]*R[0,2], 0.0))),
+                np.arctan2(-s*R[0,1], s*R[0,0]),
             ])
-    elif axes == 'xyz' and not fixed:
-        return np.array([
-            np.arctan2(-s*R[1,2], s*R[2,2]),
-            np.arctan2(R[0,2], s*np.sqrt(max(1-R[0,2]*R[0,2], 0.0))),
-            np.arctan2(-s*R[0,1], s*R[0,0]),
-        ])
     else:
         return None
 
@@ -91,7 +105,7 @@ def rot2euler_sp(R, axes='xyz', fixed=True):
 
 def rot2axisangle(R):
     eps = 1e-6
-    arg = (R[0,0]+R[1,1]+R[2,2]-1)/2
+    arg = 0.5 * (R[0,0]+R[1,1]+R[2,2] - 1)
     arg = np.clip(arg, -1, 1)
     a = np.arccos(arg)
     if a < eps:
@@ -129,7 +143,7 @@ def vec2rot(r):
 
 def in2pi(r):
     '''Brings an angele in the intervall [-pi, pi]'''
-    return r - np.floor(1/2*(r/np.pi+1))*2*np.pi # 1.35 µs
+    return r - np.floor(0.5*(r/np.pi+1))*2*np.pi # 1.35 µs
     #return np.mod(r+np.pi, 2*np.pi) - np.pi # 1.67 µs
 
 def rotx(angle):

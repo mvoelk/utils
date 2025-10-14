@@ -153,7 +153,7 @@ def crop_and_scale_perspective(img, crop_xy=[0,0], crop_wh=[1000000,1000000], sc
 def normals_from_xyz(xyz, kernel_size=3, invalid_value=(0,0,0)):
     """Computes the normals of a structured point cloud
 
-    We assume that the point cloud stems from a 3D camera, so the z component of the normals point to the origin.
+    We assume that the point cloud stems from a 3d camera, so the z component of the normals point to the origin.
 
     # Arguments
         xyz: shape (h,w,3)
@@ -187,7 +187,7 @@ def center_of_mass(mask):
         return None
 
 def porject_box_mask(T_box, box_size, K, image_size):
-    """Projects a box or cuboid from the 3D into an image mask
+    """Projects a box or cuboid from the 3d space into an image mask
 
     # Arguments
         T_box: homogeneous transformation, center of box
