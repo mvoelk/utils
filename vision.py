@@ -13,20 +13,33 @@ def xyz_to_image_orthographic(xyz, image_size, pixel_per_meter):
     '''Transforms from 3d space to image coordinates.
 
     # Arguments
-        xyz: points in 3d space, shape (n, 3)
+        xyz: points in 3d space, shape (..., 3)
         image_size: shape (2)
         pixel_per_meter:
 
     # Return
-        xy_img: shape (..., n, 2)
+        xy_img: shape (..., 2)
     '''
     w, h = image_size
     x_img = xyz[...,0] * pixel_per_meter + (w-1)/2
     y_img = xyz[...,1] * pixel_per_meter + (h-1)/2
     return np.stack([x_img, y_img], axis=-1)
 
-#def xyz_to_image_perspective(xyz, K):
-# TODO
+def xyz_to_image_perspective(xyz, K):
+    '''Transforms from 3d space to image coordinates.
+
+    # Arguments
+        xyz: points in 3d space, shape (..., 3)
+        K: camera matrix, shape (3, 3)
+
+    # Return
+        xy_img: shape (..., 2)
+    '''
+    xyz = K @ xyz[...,None]
+    x, y, z = xyz[...,0,0], xyz[...,1,0], xyz[...,2,0]
+    x_img, y_img = x/z, y/z
+    return np.stack([x_img, y_img], axis=-1)
+
 
 def perspective_to_xyz(depth, K):
     '''Creates a point cloud from a depth map.
@@ -186,7 +199,7 @@ def center_of_mass(mask):
     else:
         return None
 
-def porject_box_mask(T_box, box_size, K, image_size):
+def project_box_mask(T_box, box_size, K, image_size):
     """Projects a box or cuboid from the 3d space into an image mask
 
     # Arguments
