@@ -1,6 +1,6 @@
 """
 SPDX-License-Identifier: MIT
-Copyright © 2015 - 2024 Markus Völk
+Copyright © 2015 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
@@ -323,13 +323,21 @@ def find_local_maxima(img):
     # Return
         xy: tuple with indices, each shape (n)
     """
-    k = np.ones((3,3), dtype='uint8')
-    k[1,1] = 0
-    xy = np.where(img > cv2.dilate(img, k))
+    #kernel = np.ones((3,3), dtype='uint8')
+    #kernel[1,1] = 0
+    #dilated = cv2.dilate(img, kernel)
+    #local_max = (img > dilated)
+    
+    kernel = np.ones((3, 3), np.uint8)
+    dilated = cv2.dilate(img, kernel)
+    eroded = cv2.erode(img, kernel)
+    local_max = (img == dilated) & (img > eroded)
+
+    xy = np.where(local_max)
     return xy
 
 
-def color_id_map(id_map):
+def color_id_map(id_map, background_color=[0.1, 0.1, 0.1]):
     """
     # Arguments
         id_map: uint, shape (w,h)
@@ -340,7 +348,7 @@ def color_id_map(id_map):
     img = np.zeros((*id_map.shape, 3), dtype='float32')
     for i in np.unique(id_map):
         if i == 0:
-            c = 0.1 * np.ones(3)
+            c = np.array(background_color)
         else:
             c = np.random.random(3)
             a = 0.9
