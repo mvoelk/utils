@@ -7,7 +7,6 @@ Code was taken from https://github.com/mvoelk/utils
 
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def bar_plot(data, labels=None, title=None, total_width=.8, single_width=.9, vertical=False, figsize=(16,16), lim=(None,None), loc='best'):
@@ -70,6 +69,8 @@ def plot_abs_error_hist(y_true, y_pred=None, mask=None, bins=100, cumulative=Fal
         plot_abs_error_hist(y_true[i,...,1], y_pred[i,...,1], mask, bins=100, y_max=None, cumulative=True)
     """
     
+    import seaborn as sns
+
     y_true = np.reshape(np.float32(y_true), (-1))
     
     if y_pred is not None:
@@ -138,3 +139,10 @@ def plot_points(points, normals=None, point_size=2.0, view=None, figsize=(8,6), 
         ax.view_init(elev=90.0, azim=90.0)
 
     plt.show()
+
+
+def draw_bbox(box, linewidth=1, edgecolor='r'):
+    '''Draws a axis aligned bounding box'''
+    x, y, w, h = box
+    ax = plt.gca()
+    ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor=edgecolor, facecolor='none'))
