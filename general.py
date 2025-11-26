@@ -4,8 +4,12 @@ Copyright © 2017 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
-import os, re, random, time, shutil
+import os, re, random, time, datetime, shutil
 import cProfile
+
+
+def time_stamp():
+    return datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
 
 
 class Object():
