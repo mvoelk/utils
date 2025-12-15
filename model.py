@@ -155,7 +155,7 @@ def plot_parameter_statistic(model,
     names = [l.name for l in layers]
     y = range(len(names))
 
-    plt.figure(figsize=(12, 0.2+len(y)/4))
+    plt.figure(figsize=(12, 0.2+0.25*len(y)))
 
     offset = np.zeros(len(layers), dtype=int)
     legend = []
@@ -225,7 +225,7 @@ def plot_kernels(model, distribution=False, limit=None):
     else:
         y_mean, y_std = [np.mean(w) for w in ww], [np.std(w) for w in ww]
         x = np.arange(num_layers)
-        plt.figure(figsize=(12, 0.4+0.3*num_layers))
+        plt.figure(figsize=(6, 0.2+0.25*num_layers))
         plt.errorbar(y_mean, x, xerr=y_std, fmt='o')
         plt.yticks(x, layer_names, rotation=0)
         ax = plt.gca()
@@ -283,7 +283,7 @@ def plot_weights_over_epochs(weight_dir):
     plt.show()
 
 
-def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=False, limit=None):
+def plot_activations(model, batch=None, batch_size=32, distribution=False, ignoere_zeros=False, limit=None):
     # plots activation mean and std for all layers in a model
 
     outputs = [l.output[0] if type(l.output) is list else l.output for l in model.layers]
@@ -292,13 +292,15 @@ def plot_activations(model, batch_size=32, distribution=False, ignoere_zeros=Fal
     input_shape = model.input_shape[1:]
     num_layers = len(layer_names)
 
-    #random_x = lambda shape: np.float32(np.random.uniform(-1,1, size=shape))
-    random_x = lambda shape: np.float32(np.clip(np.random.normal(size=shape), -3, 3))
+    #random_x = lambda shape: np.float32(np.random.uniform(-1, 1, size=shape))
+    random_x = lambda shape: np.float32(np.clip(np.random.normal(0, 1, size=shape), -3, 3))
 
-    if type(model.input_shape) is tuple:
-        x = [random_x([batch_size, *model.input_shape[1:]])]
-    else:
-        x = [random_x([batch_size, *s[1:]]) for s in model.input_shape]
+    if batch == None:
+        if type(model.input_shape) is tuple:
+            batch = [random_x([batch_size, *model.input_shape[1:]])]
+        else:
+            batch = [random_x([batch_size, *s[1:]]) for s in model.input_shape]
+    x = batch
 
     y = tmp_model(x)
     y = [np.array(a).flatten() for a in y]
