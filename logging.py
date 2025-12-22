@@ -194,52 +194,49 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         except:
             df = pd.read_csv(csv_path)
         all_names.update(df.keys())
-        if len(df) > len(max_df):
-            max_df = df
         if 'iteration' not in df.keys():
             df['iteration'] = np.arange(1,len(df)+1)
         if 'epoch' not in df.keys():
             df['epoch'] = np.zeros(len(df))
+        if len(df) >= len(max_df):
+            max_df = df
         df = df[limits]
         df = {k: np.array(df[k]) for k in df.keys()}
         dfs.append(df)
-    
-    iteration = np.int32(max_df['iteration'])
-    epoch = np.int32(max_df['epoch'])
-    idx = np.argwhere(np.diff(epoch))[:,0]
-    
-    if len(idx) > 1:
-        print('steps per epoch %i ' % (int(idx[1]-idx[0])))
-        if 'time' in max_df.keys():
-            t = max_df['time']
-            print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
 
     if names is None:
         names = all_names.difference({'time', 'epoch', 'iteration'})
         print(names)
-    
-    # reduce epoch ticks
-    max_ticks = 20
-    n = len(idx)
-    if n > 1:
-        n = round(n,-1*int(np.floor(np.log10(n))))
-        while n >= max_ticks:
-            if n/2 < max_ticks:
-                n /= 2
-            else:
-                if n/5 < max_ticks:
-                    n /= 5
-                else:
-                    n /= 10
-        idx_step = int(np.ceil(len(idx)/n))
-        epoch_step = epoch[idx[idx_step]] - epoch[idx[0]]
-        for first_idx in range(len(idx)):
-            if epoch[idx[first_idx]] % epoch_step == 0:
+
+    iteration = np.int32(max_df['iteration'])
+    epoch = np.int32(max_df['epoch'])
+    idx = np.argwhere(np.diff(epoch))[:,0]
+    #idx = np.argwhere(np.diff(epoch))[,0]
+
+    idx_red = idx
+    if len(idx) > 1:
+        steps_per_epoch = int(idx[1]-idx[0])
+        print('steps per epoch %i ' % (steps_per_epoch))
+        if 'time' in max_df.keys():
+            t = max_df['time']
+            print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
+
+        # reduce epoch ticks
+        max_ticks = 10
+        step = 1
+        min_lim, max_lim = limits.start or 0, limits.stop or len(iteration)
+        while True:
+            n = np.sum((idx_red > min_lim) & (idx_red < max_lim))
+            if n < max_ticks:
                 break
-        idx_red = [idx[i] for i in range(first_idx, len(idx), idx_step)]
-    else:
-        idx_red = idx
-    
+            elif n < 2*max_ticks:
+                step *= 2
+            elif n < 5*max_ticks:
+                step *= 5
+            elif n < 10*max_ticks:
+                step *= 10
+            idx_red = idx_red[step-1::step]
+
     colorgen = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
     colors = [next(colorgen) for i in range(len(dfs))]
     
