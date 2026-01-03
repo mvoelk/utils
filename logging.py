@@ -145,8 +145,8 @@ def filter_signal(x, y, window_length=1000):
     return x, y
 
 
-def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only=False, 
-             autoscale=True, legend_loc='best', save_plots=False):
+def plot_log(log_dirs, names=None, limits=None, window_length=250,
+             filtered_only=False, autoscale=True, save_plots=False):
     """Plot and compares the training log contained in './checkpoints/'.
     
     # Agrumets
@@ -163,7 +163,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
         Different batch size leads to different epoch length.
     """
     
-    loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist'}
+    loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist', 'reg'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if save_plots:
@@ -211,20 +211,20 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     iteration = np.int32(max_df['iteration'])
     epoch = np.int32(max_df['epoch'])
     idx = np.argwhere(np.diff(epoch))[:,0]
-    #idx = np.argwhere(np.diff(epoch))[,0]
+
+    min_lim, max_lim = limits.start or 0, limits.stop or len(iteration)
 
     idx_red = idx
     if len(idx) > 1:
         steps_per_epoch = int(idx[1]-idx[0])
         print('steps per epoch %i ' % (steps_per_epoch))
         if 'time' in max_df.keys():
-            t = max_df['time']
-            print('time per epoch %3.1f h' % ((t[idx[1]]-t[idx[0]])/3600))
+            seconds_per_epoch = (max_df['time'][idx[1]]-max_df['time'][idx[0]]) / 3600
+            print('time per epoch %3.1f h' % (seconds_per_epoch))
 
         # reduce epoch ticks
         max_ticks = 10
         step = 1
-        min_lim, max_lim = limits.start or 0, limits.stop or len(iteration)
         while True:
             n = np.sum((idx_red > min_lim) & (idx_red < max_lim))
             if n < max_ticks:
@@ -242,30 +242,38 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
     
     for k in names:
         plt.figure(figsize=(16, 6))
-        xmin, xmax, ymax, ymean = 2147483647, 0, 0, 0
-        non_zero = False
+        xmin, xmax, ymin, ymax, ymean = 2147483647, -2147483648, np.inf, -np.inf, 0.0
+        yref1, yref2 = 1e-8, 0.0
+        found = False
         for i, df in enumerate(dfs):
-            if k in df.keys():
-                if len(df[k]):
-                    non_zero = True
+            if k in df.keys() and len(df[k]):
+                x, y = df['iteration'], df[k]
+                
+                yref1 += np.mean(y[:100])
+                yref2 += np.mean(y[-100:])
+                found = True
 
-                    if np.all(np.isfinite(df[k])):
-                        if autoscale:
-                            ymax = max(ymax, np.max(df[k]))
-                            ymean = max(ymean, np.mean(df[k]))
-                        label = log_dirs[i]
-                    else:
-                        label = log_dirs[i] + ' (NaN)'
+                finite = np.all(np.isfinite(y))
+                label = log_dirs[i] + ' (NaN)'*(not finite)
 
-                    if window_length:
-                        plt.plot(*filter_signal(df['iteration'], df[k], window_length), color=colors[i], label=label)
-                        if not filtered_only:
-                            plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], alpha=0.3)
+                if window_length:
+                    x_, y_ = filter_signal(x, y, window_length)
+                    plt.plot(x_, y_, color=colors[i], label=label)
+                    if not filtered_only:
+                        plt.plot(x, y, zorder=0, color=colors[i], alpha=0.3)
                     else:
-                        plt.plot(df['iteration'], df[k], zorder=0, color=colors[i], label=label)
-                    xmin, xmax = min(xmin, df['iteration'][0]), max(xmax, df['iteration'][-1])
+                        y = y_
+                else:
+                    plt.plot(x, y, zorder=0, color=colors[i], label=label)
+
+                xmin, xmax = min(xmin, x[0]), max(xmax, x[-1])
+                if len(y) and finite:
+                    ymin, ymax, ymean = min(ymin, np.min(y)), max(ymax, np.max(y)), max(ymean, np.mean(y))
         
-        if non_zero:
+        if found:
+            #legend_loc = 'best' # nice but slow as hell
+            legend_loc = 'upper right' if yref1 > yref2 else 'lower right'
+
             plt.title(k, y=1.05)
             plt.legend(loc=legend_loc)
             
@@ -273,9 +281,8 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
             ax1.set_xlim(xmin, xmax)
             if autoscale:
                 k_split = k.split('_')
-                ymax = min(ymax, ymean*4)
                 if len(loss_terms.intersection(k_split)):
-                    plt.ylim(0, ymax)
+                    plt.ylim(0, min(ymax*1.05, ymean*4))
                 elif len(metric_terms.intersection(k_split)):
                     plt.ylim(0, 1)
             ax1.yaxis.grid(True)
@@ -303,7 +310,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250, filtered_only
 
 def plot_history(log_dirs, names=None, limits=None, autoscale=True, validation=True, save_plots=False, markers=False):
 
-    loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist'}
+    loss_terms = {'loss', 'error', 'err', 'abs', 'sqr', 'dist', 'reg'}
     metric_terms = {'precision', 'recall', 'fmeasure', 'accuracy', 'sparsity', 'visibility'}
     
     if save_plots:
@@ -378,14 +385,14 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, validation=T
             if autoscale:
                 k_split = k.split('_')
                 if len(loss_terms.intersection(k_split)):
-                    plt.ylim(0, None)
+                    plt.ylim(0, ymax*1.05)
                 elif len(metric_terms.intersection(k_split)):
                     #plt.ylim(0, 1)
                     plt.ylim(np.floor(ymin*10)/10, np.ceil(ymax*10)/10)
                     #plt.hlines([0.5,0.8,0.9], xmin, xmax, linestyles='-.', linewidth=1)
             plt.title(k)
             plt.grid()
-            plt.legend()
+            plt.legend(loc='best')
             plt.tight_layout()
             if save_plots:
                 plt.savefig(plotdir+'/%s.pdf'%(k), bbox_inches='tight')
