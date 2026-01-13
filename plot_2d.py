@@ -146,3 +146,35 @@ def draw_bbox(box, linewidth=1, edgecolor='r'):
     x, y, w, h = box
     ax = plt.gca()
     ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor=edgecolor, facecolor='none'))
+
+
+def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=True):
+
+    # imgs: shape (n_rows, n_cols, h, w)
+
+    n_rows, n_cols, h, w = imgs.shape
+
+    H = n_rows * h + (n_rows - 1) * gap
+    W = n_cols * w + (n_cols - 1) * gap
+    
+    canvas = np.full((H, W), np.nan, dtype='float32')
+    for r in range(n_rows):
+        for c in range(n_cols):
+            i0 = r * (h + gap)
+            j0 = c * (w + gap)
+            canvas[i0:i0 + h, j0:j0 + w] = imgs[r, c]
+    
+    cmap = plt.get_cmap('viridis').copy()
+    cmap.set_bad(color='white')
+    
+    fig, ax = plt.subplots(figsize=figsize)
+    im = ax.imshow(np.ma.masked_invalid(canvas), cmap=cmap, vmin=np.min(imgs), vmax=np.max(imgs), interpolation='nearest', origin='upper')
+    ax.axis('off')
+
+    if colorbar:
+        cbar = fig.colorbar(im, ax=ax, fraction=0.02, pad=0.02)
+        cbar.ax.tick_params(labelsize=6)
+    
+    plt.tight_layout()
+    plt.show()
+

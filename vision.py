@@ -391,6 +391,14 @@ def write_mask(file_path, mask):
     cv2.imwrite(file_path, np.uint8(mask>0)*255)
 
 
+def tile_images(x):
+    # x: shape (m, n, h, w, ...)
+    # result: shape (m*h, n*w, ...)
+    m, n, h, w = x.shape[:4]
+    axes = (0,2,1,3) + tuple(range(4, x.ndim))
+    return x.transpose(axes).reshape(m*h, n*w, *x.shape[4:])
+
+
 # legacy
 #depth_to_xyz = perspective_to_xyz
 #image_to_xyz = image_to_xyz_perspective
