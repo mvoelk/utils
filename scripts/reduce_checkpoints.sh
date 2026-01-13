@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# run this script form the 'checkpoints' directory
+
 for D in */ ; do
     [ -L "${D%/}" ] && continue
     echo "$D"
