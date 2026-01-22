@@ -45,7 +45,7 @@ def perspective_to_xyz(depth, K):
     '''Creates a point cloud from a depth map.
 
     # Arguments
-        depth: depht map, shape (h, w)
+        depth: depth map, shape (h, w)
         K: camera matrix, shape (3, 3)
 
     # Return
@@ -66,7 +66,7 @@ def orthographic_to_xyz(depth, pixel_per_meter=300):
     """Creates a point cloud from an orthographic projection.
 
     # Arguments
-        depth: depht map, shape (h, w)
+        depth: depth map, shape (h, w)
         pixel_per_meter:
 
     # Return
@@ -92,8 +92,8 @@ def xyz_to_orthographic(xyz, rgb=None, image_size=(512, 320), pixel_per_meter=30
         pixel_per_meter:
 
     # Return
-        depth: orthograpic projekted depth map, shape (h, w)
-        rgb: orthograpic projekted rgb image, shape (h, w, 3)
+        depth: orthographic projected depth map, shape (h, w)
+        rgb: orthographic projected rgb image, shape (h, w, 3)
     """
 
     w, h = image_size
@@ -123,18 +123,18 @@ def xyz_to_orthographic(xyz, rgb=None, image_size=(512, 320), pixel_per_meter=30
     return img
 
 def perspective_to_orthographic(depth, rgb=None, K=np.eye(3), image_size=(512, 320), pixel_per_meter=300):
-    """Creates an orthographic projection from a perspectiv depth map.
+    """Creates an orthographic projection from a perspective depth map.
 
     # Arguments
-        depth: depht map, shape (h, w)
+        depth: depth map, shape (h, w)
         rgb: color of points, shape (h, w, 3)
         K: camera matrix, shape (3, 3)
         image_size: shape (2)
         pixel_per_meter:
 
     # Return
-        depth: orthograpic projekted depth map, shape (h, w)
-        rgb: orthograpic projekted rgb image, shape (h, w, 3)
+        depth: orthographic projected depth map, shape (h, w)
+        rgb: orthographic projected rgb image, shape (h, w, 3)
     """
     xyz = perspective_to_xyz(depth, K)
     return xyz_to_orthographic(xyz, rgb, image_size=image_size, pixel_per_meter=pixel_per_meter)
@@ -315,7 +315,7 @@ def image_to_xyz_orthographic(xy_img, z, image_size, pixel_per_meter):
 
 
 def find_local_maxima(img):
-    """Fineds the local maxima in an image.
+    """Finds the local maxima in an image.
 
     # Arguments
         img: shape (h,w)

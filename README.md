@@ -14,7 +14,7 @@ profiling, measuring of execution time, JSON investigation, etc.
 ## geometry.py
 Transformations related to the SE(3) group
 
-Homogenious Transformations, Euler-Angles, Quaternions, Axis-Angle Representation, Hand-Eye Calibration, Vector projection etc.
+Homogeneous Transformations, Euler-Angles, Quaternions, Axis-Angle Representation, Hand-Eye Calibration, Vector projection etc.
 
 ## kinematics.py
 Damped Least Squares Inverse (DLS), Singularity Robust Inverse (SR)
@@ -41,7 +41,7 @@ Plots using matplotlib
 for dense CNN output, etc.
 
 ## plot_3d.py
-Visaulizations using pythreejs
+Visualization using pythreejs
 
 Frames, Boxes, Point Clouds, etc.
 
@@ -49,7 +49,7 @@ Frames, Boxes, Point Clouds, etc.
 Classes and functions related to training Keras models
 
 ## vision.py
-Transformation related to color images, depht maps and point clouds
+Transformation related to color images, depth maps and point clouds
 
 perspective and orthographic projection, normals etc. 
 

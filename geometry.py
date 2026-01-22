@@ -142,7 +142,7 @@ def vec2rot(r):
     return R
 
 def in2pi(r):
-    '''Brings an angele in the intervall [-pi, pi]'''
+    '''Brings an angles in the interval [-pi, pi]'''
     return r - np.floor(0.5*(r/np.pi+1))*2*np.pi # 1.35 µs
     #return np.mod(r+np.pi, 2*np.pi) - np.pi # 1.67 µs
 
@@ -206,7 +206,7 @@ def translation_error(t1, t2):
         t2: array of shape (..., 3)
 
     # Return
-        array of shpae (...)
+        array of shape (...)
     '''
     return np.linalg.norm(t1-t2, axis=-1)
 
@@ -218,7 +218,7 @@ def rotation_error(R1, R2):
         R2: array of shape (..., 3, 3)
 
     # Return
-        array of shpae (...)
+        array of shape (...)
     '''
     # suffers from numeric issues at arccos(1)
     #R = np.matmul(R1, np.swapaxes(R2, -1, -2))
@@ -291,7 +291,7 @@ def hinv(T):
     return Ti
 
 def trafo(t=np.zeros(3), R=np.eye(3)):
-    '''Buids a homogenious matrix
+    '''Builds a homogeneous matrix
 
     # Arguments
         t: shape (..., 3)

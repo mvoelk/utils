@@ -18,7 +18,7 @@ class MetricUtility():
         names: list of metric names.
         logdir: If specified, the log and history are written to csv files.
     
-    The update methode receives a dictionary with values for each metric and
+    The update method receives a dictionary with values for each metric and
     should be called after each iteration.
     
     # Example
@@ -149,7 +149,7 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250,
              filtered_only=False, autoscale=True, save_plots=False):
     """Plot and compares the training log contained in './checkpoints/'.
     
-    # Agrumets
+    # Arguments
         log_dirs: string or list of string with directory names.
         names: list of strings with metric names in 'log.csv'.
             None means all.

@@ -77,7 +77,7 @@ def load_weights(model, filepath, layer_names=None):
 def freeze_layers(model, trainable_conv_layers=0, trainable_bn_layers=0):
     """Set layers to none trainable.
 
-    # Argumentes
+    # Arguments
         model: Keras model
         trainable_conv_layers: Number ob trainable convolution layers at 
             the end of the architecture.
@@ -94,7 +94,7 @@ def freeze_layers(model, trainable_conv_layers=0, trainable_bn_layers=0):
 
 
 def calc_memory_usage(model, batch_size=1):
-    """Compute the memory usage of a keras modell.
+    """Compute the memory usage of a keras model.
 
     # Arguments
         model: Keras model.
@@ -335,7 +335,7 @@ def plot_activations(model, batch=None, batch_size=32, distribution=False, ignoe
 
 
 def plot_activation_with_mask(model, sparsity=0.5, batch_size=32):
-    # plots mean and std for layers in PartiaConv model
+    # plots mean and std for layers in PartialConv model
 
     conv_layers = [ l for l in model.layers if l.__class__.__name__ in ['PartialConv2D', 'PartialDepthwiseConv2D', 'Lambda'] ]
 
@@ -396,7 +396,7 @@ def calc_receptive_field(model, layer_name, verbose=False):
     
     # Return
         rf: Receptive field (w, h).
-        es: Effictive stides in the input image.
+        es: Effective strides in the input image.
         offset: Center of the receptive field associated with the first unit (x, y).
     """
     # TODO...

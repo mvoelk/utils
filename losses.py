@@ -37,7 +37,7 @@ def smooth_l1_loss(y_true, y_pred):
     return tf.reduce_sum(loss, axis=-1)
 
 def shrinkage_loss(y_true, y_pred, a=10.0, c=0.2):
-    """Compute Shrikage Loss.
+    """Compute Shrinkage Loss.
 
     # Arguments
         y_true: Ground truth, tensor of shape (..., n)
@@ -64,7 +64,7 @@ def dynamic_shrinkage_loss(y_true, y_pred, mask=None, a=5.0, c=0.5, autoscale=Tr
         autoscale: boolean
         mean_all: boolean
         reduce: boolean
-    # Retrun
+    # Return
         mean_abs:
         loss:
         [certainty]:
@@ -189,7 +189,7 @@ def reduced_focal_loss(y_true, y_pred, gamma=2., alpha=1., th=0.5):
 
 
 def ciou_loss(y_true, y_pred, variant='diou'):
-    '''Conpute Distance-IoU loss.
+    '''Compute Distance-IoU loss.
 
     # Arguments
         y_true: Ground truth bounding boxes, tensor of shape (..., 4)

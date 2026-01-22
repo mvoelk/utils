@@ -60,7 +60,7 @@ def dlsinv(J, d=0.1, w_0=0.01):
         array, shape (n, m), DLS inverse of J
     """
 
-    # cutoff for small singular values to avoid numerical issuses, division by zero etc.
+    # cutoff for small singular values to avoid numerical issues, division by zero etc.
     # singular values smaller then rcond * largest_singular_value are set to zero
     rcond = 1e-12
     
