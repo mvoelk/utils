@@ -123,7 +123,7 @@ def plot_points(points, normals=None, point_size=2.0, view=None, figsize=(8,6), 
     plt.figure(figsize=figsize)
 
     ax = plt.subplot(111, projection='3d')
-    points = np.asanyarray(points)
+    points = np.asarray(points)
     ax.scatter(*points.T, s=point_size)
     if normals is not None:
         normals = np.asarray(normals)
@@ -148,9 +148,10 @@ def draw_bbox(box, linewidth=1, edgecolor='r'):
     ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor=edgecolor, facecolor='none'))
 
 
-def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=True):
+def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=False, fname=None, cmap='viridis'):
 
     # imgs: shape (n_rows, n_cols, h, w)
+    # fname: string
 
     n_rows, n_cols, h, w = imgs.shape
 
@@ -164,7 +165,7 @@ def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=True):
             j0 = c * (w + gap)
             canvas[i0:i0 + h, j0:j0 + w] = imgs[r, c]
     
-    cmap = plt.get_cmap('viridis').copy()
+    cmap = plt.get_cmap(cmap).copy()
     cmap.set_bad(color='white')
     
     fig, ax = plt.subplots(figsize=figsize)
@@ -176,5 +177,7 @@ def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=True):
         cbar.ax.tick_params(labelsize=6)
     
     plt.tight_layout()
+    if fname is not None:
+        plt.savefig(fname, bbox_inches='tight')
     plt.show()
 
