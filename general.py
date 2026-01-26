@@ -59,16 +59,28 @@ class profile:
         self.profile.print_stats(sort=self.sort)
 
 
-def print_json_tree(json_data):
+def print_json_tree(json_data, with_types=True):
+    import numpy as np
+    pad = '  '
+    s = '%-80.80s %s' if with_types else '%s %.0s'
     def recurse(d, o):
-        pad = '  '
-        if isinstance(o, dict):
-            for k in o.keys():
-                print(pad*d + k)
-                recurse(d+1, o[k])
-        if isinstance(o, list) and len(o) and isinstance(o[0], dict):
-            print(pad*d + '...')
-            recurse(d+1, o[0])
+        for k, v in o.items():
+            ns = pad*d + k
+            if isinstance(v, dict):
+                print(s%(ns,''))
+                recurse(d+1, v)
+            elif isinstance(v, (list,tuple)):
+                ts = '%-10s %s' % (type(v).__name__, len(v))
+                print(s%(ns,ts))
+                if len(v) and isinstance(v[0], dict):
+                    print(pad*(d+1) + '...')
+                    recurse(d+2, v[0])
+            elif isinstance(v, (np.ndarray)):
+                ts = '%-10s %s' % (v.dtype, v.shape)
+                print(s%(ns,ts))
+            else:
+                ts = '%-10s' % (type(v).__name__,)
+                print(s%(ns,ts))
     recurse(0, json_data)
 
 def find_json_key(json_data, key, pprint=True):
