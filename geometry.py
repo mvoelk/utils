@@ -99,6 +99,7 @@ def rot2euler(R, axes='xyz', fixed=False, s=1):
         return None
 
 def rot2euler_sp(R, axes='xyz', fixed=True):
+    # should always work as a direct replacement
     from scipy.spatial.transform import Rotation
     seq = axes.lower() if fixed else axes.upper()
     return Rotation.from_matrix(R).as_euler(seq, degrees=False)
@@ -310,21 +311,30 @@ def to4x4(M):
 
 def print_rot_info(R):
     '''Prints some properties of a rotation matrix.
-        R@R.T                 should be I
-        norm(R, axis=-2)      should be all 1
-        norm(R, axis=-1)      should be all 1
-        det(R)                should be +1
+        R @ R.T              should be I
+        norm(R, axis=0)      should be all 1
+        norm(R, axis=1)      should be all 1
+        det(R)               should be +1
+        SVD
 
     # Arguments
         R: shape (3, 3) or (4, 4)
     '''
     R = R[:3,:3]
+    RR = R @ R.T
+    U, S, Vh = np.linalg.svd(R)
     with np.printoptions(precision=6, suppress=True):
+        def printa(n, a):
+            s = '%-14s'%(n)
+            print(s + np.array2string(a, prefix=s))
         print()
-        print(R@R.T)
-        print(np.linalg.norm(R, axis=-2))
-        print(np.linalg.norm(R, axis=-1))
-        print('%.6f'%np.linalg.det(R))
+        printa('R @ R.T', RR)
+        printa('norm axis=0', np.linalg.norm(R, axis=0))
+        printa('norm axis=1', np.linalg.norm(R, axis=1))
+        printa('det', np.linalg.det(R))
+        printa('U', U)
+        printa('S', S)
+        printa('Vh', Vh)
 
 def transform_points(xyz, T):
     '''Transforms points by means of a homogeneous matrix.
