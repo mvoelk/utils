@@ -7,6 +7,24 @@ Code was taken from https://github.com/mvoelk/utils
 import numpy as np
 
 
+
+def confusion_matrix(c_true, c_pred, labels=None):
+    """Confusion Matrix for classifier evaluation
+
+    # Arguments
+        c_true: ground truth class label, shape (num_samples)
+        c_pred: predicted class labels, shape (num_samples)
+        labels: list or array of labels, shape (mum_classes), inferred from c_true and c_pred if not specified
+    """
+    if labels is None:
+        labels = np.unique(np.concatenate([c_true, c_pred]))
+    num_labels = len(labels)
+    true_idx, pred_idx = np.searchsorted(labels, c_true), np.searchsorted(labels, c_pred)
+    cm = np.zeros((num_labels, num_labels), dtype=int)
+    np.add.at(cm, (true_idx, pred_idx), 1)
+    return cm
+
+
 def covariance_matrix(z):
     """Covariance of the features in a batch
 
