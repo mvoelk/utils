@@ -94,9 +94,12 @@ def plot_abs_error_hist(y_true, y_pred=None, mask=None, bins=100, cumulative=Fal
 
 
 def plot_output_distribution(y, mask=None):
-    # y: shape (..., num_features)
-    # mask: shape (...)
-    
+    '''Error plot (mean and std) for a batch of features
+
+    # Arguments
+        y: shape (..., num_features)
+        mask: shape (...)
+    '''
     num_features = y.shape[-1]
     a = np.reshape(y, (-1,num_features))
     if mask is not None:
@@ -112,31 +115,43 @@ def plot_output_distribution(y, mask=None):
     plt.show()
 
 
-def plot_points(points, normals=None, point_size=2.0, view=None, figsize=(8,6), limits=(-1,1)):
-    '''Basic quiver plot for point clouds and normal vectors
+def plot_points(points1, points2=None, T1=None, T2=None, point_size=2.0, view=None, with_normals=True):
+    
+    fig = plt.figure(figsize=(12,6))
 
-    # Arguments
-        points: float, shape (..., 3)
-        normals: float, shape (..., 3)
-    '''
+    for i, (points, T) in enumerate(zip([points1, points2], [T1, T2])):
+    
+        if points is not None:
+            
+            ax = plt.subplot(121+i, projection='3d', proj_type='ortho' if view in ['x', 'y', 'z'] else 'persp')
+            
+            ax.scatter(*points[...,:3].T, s=point_size)
+            
+            if with_normals and points.shape[-1] == 6:
+                ax.quiver(*points[...,:3].T, *points[...,3:6].T, alpha=0.3, length=0.1, color='tab:red')
 
-    plt.figure(figsize=figsize)
+            ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+            ax.set_xlim(-1, 1); ax.set_ylim(-1, 1); ax.set_zlim(-1, 1)
+            ax.set_box_aspect(aspect = (1,1,1))
 
-    ax = plt.subplot(111, projection='3d')
-    points = np.asarray(points)
-    ax.scatter(*points.T, s=point_size)
-    if normals is not None:
-        normals = np.asarray(normals)
-        ax.quiver(*points.T, *normals.T, alpha=0.3, length=0.02*point_size, color='tab:red')
-    ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
-    ax.set_xlim(*limits); ax.set_ylim(*limits); ax.set_zlim(*limits)
+            if T is not None:
+                draw_frame_3d(T, length=0.5)
 
-    if view == 'x':
-        ax.view_init(elev=0.0, azim=0.0)
-    if view == 'y':
-        ax.view_init(elev=0.0, azim=90.0)
-    if view == 'z':
-        ax.view_init(elev=90.0, azim=90.0)
+            if view == 'x':
+                ax.view_init(elev=0.0, azim=0.0)
+            if view == 'y':
+                ax.view_init(elev=0.0, azim=90.0)
+            if view == 'z':
+                ax.view_init(elev=90.0, azim=90.0)
+
+            plt.tight_layout()
+
+    try:
+        fig.canvas.header_visible = False
+        fig.canvas.footer_visible = False
+        fig.canvas.toolbar_visible = False
+    except:
+        pass
 
     plt.show()
 
@@ -147,8 +162,19 @@ def draw_bbox(box, linewidth=1, edgecolor='r'):
     ax = plt.gca()
     ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor=edgecolor, facecolor='none'))
 
+def draw_frame_3d(T=np.eye(4), length=1.0, lw=2):
+    '''Draws a homogeneous transformation matrix in 3d'''
+    R, t = T[:3,:3], T[:3,3]
+    axes = R * length
+    colors = ['r', 'g', 'b']
+    labels = ['X', 'Y', 'Z']
+    ax = plt.gca()
+    for i in range(3):
+        ax.quiver(*t, *axes[:,i], color=colors[i], linewidth=lw)
+        ax.text(*(t + axes[:,i]), labels[i], color=colors[i])
 
-def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=False, fname=None, cmap='viridis'):
+
+def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=False, fname=None, cmap='viridis', vmin=None, vmax=None, title=None):
 
     # imgs: shape (n_rows, n_cols, h, w)
     # fname: string
@@ -168,9 +194,12 @@ def plot_tiled_images(imgs, gap=1, figsize=(9,8), colorbar=False, fname=None, cm
     cmap = plt.get_cmap(cmap).copy()
     cmap.set_bad(color='white')
     
+    vmin = np.min(imgs) if vmin is None else vmin
+    vmax = np.max(imgs) if vmax is None else vmax
+
     fig, ax = plt.subplots(figsize=figsize)
-    im = ax.imshow(np.ma.masked_invalid(canvas), cmap=cmap, vmin=np.min(imgs), vmax=np.max(imgs), interpolation='nearest', origin='upper')
-    ax.axis('off')
+    im = ax.imshow(np.ma.masked_invalid(canvas), cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest', origin='upper')
+    ax.axis('off'); ax.set_title(title)
 
     if colorbar:
         cbar = fig.colorbar(im, ax=ax, fraction=0.02, pad=0.02)
