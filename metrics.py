@@ -92,6 +92,18 @@ def euclidean_distance(vectors1, vectors2):
     """
     return np.linalg.norm(vectors1 - vectors2, axis=-1)
 
+def absolute_difference(vectors1, vectors2):
+    """Absolute difference between batches of vectors or a batch and a vector
+
+    # Arguments
+        vectors1: shape (num_vectors, num_features)
+        vectors2: shape (num_vectors, num_features) or (num_features)
+
+    # Return
+        shape (num_vectors)
+    """
+    return np.sum(np.abs(vectors1 - vectors2), axis=-1)
+
 def mean_absolute_difference(vectors1, vectors2):
     """Mean absolute difference (MAD) between batches of vectors or a batch and a vector
 

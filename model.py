@@ -283,19 +283,24 @@ def plot_weights_over_epochs(weight_dir):
     plt.show()
 
 
-def plot_activations(model, batch=None, batch_size=32, distribution=False, ignoere_zeros=False, limit=None):
+def plot_activations(model, batch=None, layer_names=None, batch_size=32, distribution=False, ignoere_zeros=False, limit=None):
     # plots activation mean and std for all layers in a model
 
-    outputs = [l.output[0] if type(l.output) is list else l.output for l in model.layers]
+    if layer_names is None:
+        layers = model.layers
+    else:
+        layers = [l for l in model.layers if l.name in layer_names]
+    
+    num_layers = len(layers)
+    layer_names = [l.name for l in layers]
+    outputs = [l.output[0] if type(l.output) is list else l.output for l in layers]
+
     tmp_model = Model(model.input, outputs)
-    layer_names = [l.name for l in model.layers]
-    input_shape = model.input_shape[1:]
-    num_layers = len(layer_names)
-
-    #random_x = lambda shape: np.float32(np.random.uniform(-1, 1, size=shape))
-    random_x = lambda shape: np.float32(np.clip(np.random.normal(0, 1, size=shape), -3, 3))
-
+    
     if batch == None:
+        #random_x = lambda shape: np.float32(np.random.uniform(-1, 1, size=shape))
+        random_x = lambda shape: np.float32(np.clip(np.random.normal(0, 1, size=shape), -3, 3))
+
         if type(model.input_shape) is tuple:
             batch = [random_x([batch_size, *model.input_shape[1:]])]
         else:
@@ -328,7 +333,7 @@ def plot_activations(model, batch=None, batch_size=32, distribution=False, ignoe
         plt.yticks(x, layer_names, rotation=0)
         plt.ylim(-1, num_layers)
         ax = plt.gca()
-        ax.invert_yaxis()
+        ax.invert_yaxis(); ax.xaxis.set_ticks_position('top')
         if limit: plt.xlim(-limit,limit)
         plt.grid(True)
         plt.show()
