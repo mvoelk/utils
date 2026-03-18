@@ -217,10 +217,13 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250,
     idx_red = idx
     if len(idx) > 1:
         steps_per_epoch = int(idx[1]-idx[0])
-        print('steps per epoch %i ' % (steps_per_epoch))
+        text = f'{steps_per_epoch:d} steps per epoch'
         if 'time' in max_df.keys():
-            seconds_per_epoch = (max_df['time'][idx[1]]-max_df['time'][idx[0]]) / 3600
-            print('time per epoch %3.1f h' % (seconds_per_epoch))
+            seconds_per_epoch = int(max_df['time'][idx[1]]-max_df['time'][idx[0]])
+            h,m=divmod(seconds_per_epoch,3600)
+            m,s=divmod(m,60)
+            text += f' ({h:02d}:{m:02d}:{s:02d})'
+        print(text)
 
         # reduce epoch ticks
         max_ticks = 10
@@ -278,11 +281,13 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250,
             plt.legend(loc=legend_loc)
             
             ax1 = plt.gca()
-            ax1.set_xlim(xmin, xmax)
+            #ax1.set_xlim(xmin, xmax)
+            ax1.set_xlim(min_lim, max_lim)
             if autoscale:
                 k_split = k.split('_')
                 if len(loss_terms.intersection(k_split)):
-                    plt.ylim(0, min(ymax*1.05, ymean*4))
+                    v = min(ymax*1.05, ymean*4)
+                    plt.ylim(0, v if v > 0 else None)
                 elif len(metric_terms.intersection(k_split)):
                     plt.ylim(0, 1)
             ax1.yaxis.grid(True)
@@ -294,7 +299,8 @@ def plot_log(log_dirs, names=None, limits=None, window_length=250,
             ax2.xaxis.grid(True)
             ax2.set_xticks(iteration[idx_red])
             ax2.set_xticklabels(epoch[idx_red])
-            ax2.set_xlim(xmin, xmax)
+            #ax2.set_xlim(xmin, xmax)
+            ax2.set_xlim(min_lim, max_lim)
             #ax2.set_xlabel('epoch')
             #ax2.set_yscale('linear')
             ax2.get_yaxis().get_major_formatter().set_useOffset(False)
@@ -336,10 +342,10 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, validation=T
     for d in log_dirs:
         df = pd.read_csv(os.path.join('.', 'checkpoints', d, 'history.csv'))
         all_names.update(df.keys())
-        if len(df) > len(max_df):
-            max_df = df
         if 'epoch' not in df.keys():
             df['epoch'] = np.arange(1,len(df)+1)
+        if len(df) > len(max_df):
+            max_df = df
         df = df[limits]
         df = {k: np.array(df[k]) for k in df.keys()}
         dfs.append(df)
@@ -348,6 +354,10 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, validation=T
         names = {n for n in all_names if not n.startswith('val_')}
         names = names.difference({'time', 'epoch'})
         print(names)
+
+    epoch = np.int32(max_df['epoch'])
+    
+    min_lim, max_lim = limits.start or 0, limits.stop or len(epoch)+1
     
     colorgen = itertools.cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
     colors = [next(colorgen) for i in range(len(dfs))]
@@ -381,7 +391,8 @@ def plot_history(log_dirs, names=None, limits=None, autoscale=True, validation=T
             ax = plt.gca()
             ax.set_xticks(epoch)
             ax.set_xticklabels(epoch)
-            plt.xlim(xmin, xmax)
+            #ax.set_xlim(xmin, xmax)
+            ax.set_xlim(min_lim, max_lim)
             if autoscale:
                 k_split = k.split('_')
                 if len(loss_terms.intersection(k_split)):
