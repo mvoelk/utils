@@ -115,36 +115,48 @@ def plot_output_distribution(y, mask=None):
     plt.show()
 
 
-def plot_points(points1, points2=None, T1=None, T2=None, point_size=2.0, view=None, with_normals=True):
+def plot_points(points1, points2=None, T1=None, T2=None,
+                view=(225.0, 22.5), point_size=2.0, figsize=(12,6), limits=(-1,1), with_normals=True):
+    '''Plots one or two point clouds side by side
+
+    # Arguments
+        points1, points2: shape (num_points, 3) for xyz values, or (num_points, 6) with normals
+        T1, T2: homogenous transformations for frame visualization
+        view: tuple with azimuth and elevation in degree, or preset string 'x', 'y', 'z'
+    '''
+
+    proj_type = 'ortho' if view in ['x', 'y', 'z'] else 'persp'
+
+    view_presets = {
+        'x': ( 0.0,  0.0),
+        'y': (90.0,  0.0),
+        'z': (90.0, 90.0),
+    }
+    if isinstance(view, str) and view in view_presets:
+        view = view_presets[view]
     
-    fig = plt.figure(figsize=(12,6))
+    def new_subplot(pos, points, T):
+        ax = plt.subplot(pos, projection='3d', proj_type=proj_type)
+        ax.scatter(*points[...,:3].T, s=point_size)
+        
+        if with_normals and points.shape[-1] == 6:
+            ax.quiver(*points[...,:3].T, *points[...,3:6].T, alpha=0.3, length=0.02*point_size, color='tab:red')
 
-    for i, (points, T) in enumerate(zip([points1, points2], [T1, T2])):
+        ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+        ax.set_xlim(*limits); ax.set_ylim(*limits); ax.set_zlim(*limits)
+        ax.set_box_aspect(aspect = (1,1,1))
+        ax.view_init(azim=view[0], elev=view[1])
+
+        if T is not None:
+            draw_frame_3d(T, length=0.5)
     
-        if points is not None:
-            
-            ax = plt.subplot(121+i, projection='3d', proj_type='ortho' if view in ['x', 'y', 'z'] else 'persp')
-            
-            ax.scatter(*points[...,:3].T, s=point_size)
-            
-            if with_normals and points.shape[-1] == 6:
-                ax.quiver(*points[...,:3].T, *points[...,3:6].T, alpha=0.3, length=0.1, color='tab:red')
+    fig = plt.figure(figsize=figsize)
 
-            ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
-            ax.set_xlim(-1, 1); ax.set_ylim(-1, 1); ax.set_zlim(-1, 1)
-            ax.set_box_aspect(aspect = (1,1,1))
-
-            if T is not None:
-                draw_frame_3d(T, length=0.5)
-
-            if view == 'x':
-                ax.view_init(elev=0.0, azim=0.0)
-            if view == 'y':
-                ax.view_init(elev=0.0, azim=90.0)
-            if view == 'z':
-                ax.view_init(elev=90.0, azim=90.0)
-
-            plt.tight_layout()
+    if points2 is None:
+        new_subplot(111, points1, T1)
+    else:
+        new_subplot(121, points1, T1)
+        new_subplot(122, points2, T2)
 
     try:
         fig.canvas.header_visible = False
@@ -153,6 +165,50 @@ def plot_points(points1, points2=None, T1=None, T2=None, point_size=2.0, view=No
     except:
         pass
 
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_point_assignment(points1, points2, ordered=False, point_size=2.0, figsize=(10,10), limits=(-1,1)):
+    
+    n1, c = points1.shape
+    n2, c = points2.shape
+
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(projection='3d')
+
+    if not ordered:
+        # use Chamfer Distance
+        ds = np.sum((points1[:,None,:] - points2[None,:,:]) ** 2, axis=-1) ** 0.5
+        #dist1, dist2 = np.min(ds, axis=-1), np.min(ds, axis=-2)
+        idx1, idx2 = np.argmin(ds, axis=-1), np.argmin(ds, axis=-2)
+        
+        mask1, mask2 = np.zeros(n2, dtype='bool'), np.zeros(n1, dtype='bool')
+        mask1[idx1], mask2[idx2] = True, True
+        
+        ax.scatter(*points1[mask2].T, s=point_size, color='tab:blue', alpha=0.6)
+        ax.scatter(*points1[~mask2].T, s=point_size, color='tab:green', alpha=0.8)
+        ax.scatter(*points2[mask1].T, s=point_size, color='tab:red', alpha=0.6)
+        ax.scatter(*points2[~mask1].T, s=point_size, color='tab:orange', alpha=0.8)
+        ax.quiver(*points1.T, *(points2[idx1]-points1).T, alpha=0.3, color='tab:blue')
+        ax.quiver(*points2.T, *(points1[idx2]-points2).T, alpha=0.3, color='tab:red')
+
+    else:
+        ax.scatter(*points1.T, s=point_size, color='tab:blue', alpha=0.6)
+        ax.scatter(*points2.T, s=point_size, color='tab:red', alpha=0.6)
+        ax.quiver(*points1.T, *(points2-points1).T, alpha=0.3, color='tab:gray', arrow_length_ratio=0)
+
+    ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+    ax.set_xlim(*limits); ax.set_ylim(*limits); ax.set_zlim(*limits)
+
+    try:
+        fig.canvas.header_visible = False
+        fig.canvas.footer_visible = False
+        fig.canvas.toolbar_visible = False
+    except:
+        pass
+
+    plt.tight_layout()
     plt.show()
 
 
