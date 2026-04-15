@@ -4,12 +4,29 @@ Copyright © 2017 - 2025 Markus Völk
 Code was taken from https://github.com/mvoelk/utils
 """
 
-import os, re, random, time, datetime, shutil
+import os, sys, re, random, time, datetime, shutil
 import cProfile
 
 
 def time_stamp():
     return datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
+
+def calc_object_size(obj):
+    # use also asizeof.asizeof() from pympler
+    seen = set()
+    def recursion(d):
+        if id(d) in seen:
+            return 0
+        seen.add(id(d))
+        size = sys.getsizeof(d)
+        if hasattr(obj, '__dict__'):
+            size += recursion(obj.__dict__)
+        elif isinstance(d, (dict)):
+            size += sum([recursion(k)+recursion(v) for k,v in d.items()])
+        elif isinstance(d, (list, tuple, set, frozenset)):
+            size += sum([recursion(e) for e in d])
+        return size
+    return recursion(obj)
 
 
 class Object():
