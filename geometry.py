@@ -10,6 +10,10 @@ import numpy as np
 seqs = ('xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz', 'zyx', 'zyz')
 
 
+def normalize(v, eps=1e-8):
+    return v / np.maximum(np.linalg.norm(v, axis=-1, keepdims=True), eps)
+
+
 def skew(v):
     x, y, z = v
     S = np.array([[ 0, -z,  y],

@@ -179,10 +179,17 @@ def new_bounding_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), d=0.0005, col
 
     return box
 
+def new_cylinder(l, r, T=None, p=np.zeros(3), R=np.eye(3), color='#ff0000', opacity=0.5, segments=32):
+    geometry = CylinderGeometry(r, r, l, segments)
+    material = MeshPhongMaterial(color=color, opacity=opacity, transparent=True, wireframe=False, depthWrite=False)
+    cylinder = Mesh(geometry=geometry, material=material)
+    update_pose(cylinder, T, p, R)
+    return cylinder
+
 def new_box(box_size, T=None, p=np.zeros(3), R=np.eye(3), color='#ff0000', opacity=0.5):
     w,h,d = box_size
     geometry = BoxGeometry(width=w, height=h, depth=d, widthSegments=1, heightSegments=1, depthSegments=1)
-    material = MeshPhongMaterial(color=color, opacity=opacity, transparent=True, wireframe=False)
+    material = MeshPhongMaterial(color=color, opacity=opacity, transparent=True, wireframe=False, depthWrite=False)
     box = Mesh(geometry=geometry, material=material)
     update_pose(box, T, p, R)
     return box

@@ -373,7 +373,7 @@ def overlay_id_map(img, id_map, alpha=0.5):
 
 
 def depth_as_rgb(img):
-    vmin, vmax = np.min(img), np.max(img)
+    vmin, vmax = np.nanmin(img), np.nanmax(img)
     if len(img.shape) == 2:
         img = img[:,:,None]
     if img.shape[2] == 1:
@@ -385,7 +385,7 @@ def read_rgb(file_path):
     return cv2.imread(file_path, cv2.IMREAD_UNCHANGED)[...,(2,1,0)]
 
 def write_rgb(file_path, img):
-    cv2.imwrite(file_path, img[...,(2,1,0)], [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+    cv2.imwrite(file_path, np.uint8(img)[...,(2,1,0)], [int(cv2.IMWRITE_JPEG_QUALITY), 98])
 
 def write_mask(file_path, mask):
     cv2.imwrite(file_path, np.uint8(mask>0)*255)
