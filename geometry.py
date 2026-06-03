@@ -10,9 +10,25 @@ import numpy as np
 seqs = ('xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz', 'zyx', 'zyz')
 
 
-def normalize(v, eps=1e-8):
-    return v / np.maximum(np.linalg.norm(v, axis=-1, keepdims=True), eps)
+def normalize(v, axis=-1, eps=1e-8):
+    return v / np.maximum(np.linalg.norm(v, axis=axis, keepdims=True), eps)
 
+def project(v1, v2, eps=1e-8):
+    """Decomposes vector v1 into an vector v1_proj_v2 parallel to v2 and an vector v1_orth_v2 orthogonal to vector v2.
+
+    # Arguments
+        v1: shape (..., 3)
+        v2: shape (..., 3)
+
+    # Return
+        v1_proj_v2: component of v1 parallel to v2, shape (..., 3)
+        v1_orth_v2: component of v1 orthogonal to v2, shape (..., 3)
+
+    """
+    v2_sq = np.sum(v2*v2, axis=-1, keepdims=True)
+    v1_proj_v2 = np.sum(v1 * v2, axis=-1, keepdims=True) / np.maximum(v2_sq, eps) * v2
+    v1_orth_v2 = v1 - v1_proj_v2
+    return v1_proj_v2, v1_orth_v2
 
 def skew(v):
     x, y, z = v
@@ -27,7 +43,7 @@ def unskew(S):
 
 
 def rot2quat(R, xyzw=False):
-    '''Convets a Rotation Matrix to a Unit Quaternion'''
+    '''Converts a Rotation Matrix to a Unit Quaternion'''
     qr = 0.5 * np.sqrt(max(1+R[0,0]+R[1,1]+R[2,2],0.0))
     # 24.83 µs
     qi = np.copysign(0.5 * np.sqrt(max(1+R[0,0]-R[1,1]-R[2,2],0.0)), R[2,1]-R[1,2])
@@ -173,34 +189,6 @@ def random_quat():
 
 def random_rot():
     return quat2rot(random_quat())
-
-def project_vector(v1, v2):
-    """Decomposes vector v1 into an vector v1_proj_v2 parallel to v2 and an vector v1_orth_v2 orthogonal to vector v2.
-
-    # Arguments
-        v1: shape (..., 3)
-        v2: shape (..., 3)
-
-    # Return
-        v1_proj_v2: component of v1 parallel to v2, shape (..., 3)
-        v1_orth_v2: component of v1 orthogonal to v2, shape (..., 3)
-
-    """
-    v2_norm = np.linalg.norm(v2,axis=-1, keepdims=True)
-    v1_proj_v2 = np.sum(v2*v1, axis=-1, keepdims=True) / v2_norm**2 * v2
-    v1_orth_v2 = v1 - v1_proj_v2
-    return v1_proj_v2, v1_orth_v2
-
-def normalize_vector(v):
-    """
-
-    # Arguments
-        v: shape (..., 3)
-
-    # Return
-        v_normalized: shape (..., 3)
-    """
-    return v/np.linalg.norm(v,axis=-1, keepdims=True)
 
 
 def translation_error(t1, t2):
