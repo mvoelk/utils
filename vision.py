@@ -9,6 +9,10 @@ import numpy as np
 import cv2
 
 
+def new_kernel(kernel_size=3, shape=cv2.MORPH_ELLIPSE):
+    return cv2.getStructuringElement(shape, (kernel_size, kernel_size))
+
+
 def xyz_to_image_orthographic(xyz, image_size, pixel_per_meter):
     '''Transforms from 3d space to image coordinates.
 
@@ -155,7 +159,7 @@ def crop_and_scale_perspective(img, crop_xy=[0,0], crop_wh=[1000000,1000000], sc
         h2,w2 = scale*h1, scale*w1
         assert h2.is_integer(), w2.is_integer()
         if len(img.shape) == 2 or img.shape[2] == 1:
-            # nearset interpolation for depth maps
+            # nearest interpolation for depth maps
             interpolation = cv2.INTER_NEAREST
         else:
             interpolation = cv2.INTER_CUBIC
@@ -190,24 +194,82 @@ def normals_from_xyz(xyz, kernel_size=3, invalid_value=(0,0,0)):
 
 
 def center_of_mass(mask):
-    """Calculates the center of mass of a mask"""
+    """Calculates the center of mass of a mask
+
+    # Arguments
+        mask: shape (h,w)
+
+    # Return
+        cx, cy: center of mass coordinates
+    """
     moments = cv2.moments(np.uint8(mask>0))
     if moments['m00'] != 0:
-        cx = int(moments['m10'] / moments['m00'])
-        cy = int(moments['m01'] / moments['m00'])
+        cx = moments['m10'] / moments['m00']
+        cy = moments['m01'] / moments['m00']
         return cx, cy
     else:
         return None
+
+def bounding_box(mask, largest_contour=False):
+    """Calculates the oriented bounding box for a mask
+
+    # Arguments
+        mask: shape (h,w)
+        largest_contour: whether to use only the largest contour
+
+    # Return
+        pts: first point is left in angle direction
+        x, y: center of box
+        w, h: width is short side, hight is long side
+        angle: [0, 180], 0 is horizontal
+    """
+    
+    cnts, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if len(cnts) == 0:
+        return None
+
+    contour = max(cnts, key=cv2.contourArea) if largest_contour else np.concatenate(cnts, axis=0)
+
+    (x,y), (w,h), a = rect = cv2.minAreaRect(contour)
+    box = cv2.boxPoints(rect)
+    angle = 180-a if w>h else 90-a
+
+    w, h = min(w,h), max(w,h)
+
+    if angle > 90:
+        pts = [box[i] for i in (0,1,2,3)]
+    else:
+        pts = [box[i] for i in (1,2,3,0)]
+    pts = np.int32(pts).tolist()
+
+    return pts, (x,y), (w,h), angle
+
+def axis_aligned_bounding_box(mask, largest_contour=False):
+    cnts, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if len(cnts) == 0:
+        return None
+
+    contour = max(cnts, key=cv2.contourArea) if largest_contour else np.concatenate(cnts, axis=0)
+
+    x, y, w, h = cv2.boundingRect(contour)
+    x_min, y_min, x_max, y_max = x, y, x + w, y + h
+    x, y = (x + w/2, y + h/2)
+
+    return (x_min, y_min, x_max, y_max), (x, y), (w, h)
+
 
 def project_box_mask(T_box, box_size, K, image_size):
     """Projects a box or cuboid from the 3d space into an image mask
 
     # Arguments
         T_box: homogeneous transformation, center of box
-        box_size: size in x, y and z dimension
+        box_size: size in x-, y– and z-dimension
+        K: camera matrix, shape (3,3)
         image_size: width, height
 
-    Return
+    # Return
         img: shape (h, w)
     """
 
@@ -337,7 +399,21 @@ def find_local_maxima(img):
     return xy
 
 
-def color_id_map(id_map, background_color=[0.1, 0.1, 0.1]):
+def close_depth(depth, kernel_size=17):
+    """Closes holes in depth maps using inpainting.
+    
+    # Arguments
+        depth: uint16, shape (h,w)
+    """
+    m_depth = (depth > 0)
+    inpainted = cv2.inpaint(depth, np.uint8(~m_depth), 1, cv2.INPAINT_TELEA)
+    K = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    m_closed = np.bool_(cv2.morphologyEx(np.uint8(m_depth), cv2.MORPH_CLOSE, K))
+    inpainted[~m_closed] = 0
+    return inpainted
+
+
+def color_id_map(id_map, background_color=(0.1, 0.1, 0.1)):
     """
     # Arguments
         id_map: uint, shape (w,h)
@@ -386,6 +462,9 @@ def read_rgb(file_path):
 
 def write_rgb(file_path, img):
     cv2.imwrite(file_path, np.uint8(img)[...,(2,1,0)], [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+
+def read_mask(file_path):
+    return cv2.imread(file_path, cv2.IMREAD_UNCHANGED) > 0
 
 def write_mask(file_path, mask):
     cv2.imwrite(file_path, np.uint8(mask>0)*255)
