@@ -212,11 +212,35 @@ def plot_point_assignment(points1, points2, ordered=False, point_size=2.0, figsi
     plt.show()
 
 
-def draw_bbox(box, linewidth=1, edgecolor='r'):
-    '''Draws a axis aligned bounding box'''
+def draw_bounding_box(box, linewidth=1, edgecolor='r'):
+    '''Draws an axis-aligned bounding box defined by (x, y, w, h)
+    
+    # Arguments
+        box: shape (4)
+    '''
     x, y, w, h = box
     ax = plt.gca()
     ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor=edgecolor, facecolor='none'))
+
+def draw_oriented_bounding_box(xy=None, wh=None, angle=None, pts=None, linewidth=2):
+    '''Draws an oriented bounding box defined by corner points (pts) or center (xy), size (wh) and angle.
+    
+    # Arguments
+        xy: shape (2,)
+        wh: shape(2,)
+        angle: float
+        pts: shape (4,2)
+    '''
+    ax = plt.gca()
+    if xy is not None and wh is not None and angle is not None:
+        (x, y), (w, h) = xy, wh
+        a, r = angle/180*np.pi, 0.5*w
+        ax.add_patch(plt.Rectangle((x-w/2, y-h/2), w, h, rotation_point='center', angle=90-angle, edgecolor='g', facecolor='none', lw=linewidth, alpha=0.8))
+        ax.plot([x, x + r*np.cos(a)], [y, y - r*np.sin(a)], color='b', lw=linewidth)
+        ax.plot(x, y, 'ro', ms=linewidth*2)
+    if pts is not None:
+        ax.add_patch(plt.Polygon(pts, closed=True, edgecolor='r', facecolor='none', lw=linewidth, alpha=0.8))
+        ax.plot(pts[0][0], pts[0][1], 'bo', ms=linewidth*2)
 
 def draw_frame_3d(T=np.eye(4), length=1.0, lw=2):
     '''Draws a homogeneous transformation matrix in 3d'''
