@@ -209,7 +209,7 @@ def show_cloud(xyz, rgb=None, Tcw=None,
                ranges_in_world=[], ranges_in_camera=[],
                boxes_in_world=[], boxes_in_camera=[],
                meshes_in_world=[], meshes_in_camera=[],
-               width=800, height=600, cloud_subsampling=1, point_size=0.008, frame_size=0.1):
+               width=800, height=600, subsampling=1, point_size=0.008, frame_size=0.1):
     """Displays a point cloud in jupyter notebook
 
     # Arguments
@@ -241,7 +241,7 @@ def show_cloud(xyz, rgb=None, Tcw=None,
         Tcw = np.eye(4)
         Tw = trafo(R=rotz(np.pi))
 
-    n = cloud_subsampling
+    n = subsampling
     xyz = xyz.reshape(-1,3)[::n,:]
     if rgb is not None:
         rgb = rgb.reshape(-1,3)[::n,:] / 255
