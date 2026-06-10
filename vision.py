@@ -453,6 +453,19 @@ def close_depth(depth, kernel_size=17):
     return inpainted
 
 
+def erode_id_map(id_map, space=3):
+    '''
+    # Arguments
+        id_map: uint, shape (h,w)
+        space: minimum pixel distance between segments
+    '''
+    kernel = new_kernel(space+1)
+    eroded, dilated = cv2.erode(id_map, kernel), cv2.dilate(id_map, kernel)
+    keep = (eroded==id_map) & (dilated==id_map)
+    ids_new = np.copy(id_map)
+    ids_new[~keep] = 0
+    return ids_new
+
 def color_id_map(id_map, background_color=(0.1, 0.1, 0.1)):
     """
     # Arguments
@@ -482,6 +495,8 @@ def overlay_id_map(img, id_map, alpha=0.5):
     # Return
         overlay: uint8 (h,w,3)
     """
+    if img.shape[:2] != id_map.shape[:2]:
+        id_map = cv2.resize(id_map, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
     overlay = (1-alpha)*img + alpha*color_id_map(id_map)*255
     overlay = np.where(id_map[...,None], overlay, img)
     overlay = np.clip(overlay, 0, 255)
@@ -495,6 +510,44 @@ def depth_as_rgb(img):
     if img.shape[2] == 1:
         img = np.tile(img, (1,1,3))
     return np.uint8((img-vmin)/(vmax-vmin)*255)
+
+
+def as_heatmap(img, max_value=None, colormap=cv2.COLORMAP_VIRIDIS):
+    img = np.float32(np.nan_to_num(img, nan=0.0, posinf=0.0, neginf=0.0))
+    if max_value is None:
+        max_value = np.max(img)
+    vmin, vmax = 0.0, max_value
+    img = np.uint8(np.clip((img-vmin)/(vmax-vmin)*255.0, 0, 255))
+    img = cv2.applyColorMap(img, colormap)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
+def as_histogram(values, image_size=(320, 240), title='', threshold=None):
+    w, h = image_size
+
+    values = np.float32(values).ravel()
+    
+    # Robust display max keeps single outliers from flattening the histogram.
+    x_max = max(float(np.percentile(values, 99.5)), 1e-6)
+
+    img = np.full((h,w,3), 255, dtype=np.uint8)
+    hist = np.float32(np.histogram(values, bins=w, range=(0.0, x_max))[0])
+    hist /= max(np.max(hist), 1.0)
+
+    xs = np.arange(w, dtype=np.int32)
+    y0 = h - 15
+    ys = np.int32(y0 - hist*(h-30))
+    pts = np.stack([xs, ys], axis=1).reshape((-1,1,2))
+    cv2.line(img, (0, y0), (w-1, y0), (180,180,180), 1, lineType=cv2.LINE_AA)
+    cv2.polylines(img, [pts], False, (80,80,80), 1, lineType=cv2.LINE_AA)
+
+    if threshold is not None:
+        thr_x = int(np.clip(threshold/x_max*(w-1), 0, w-1))
+        cv2.line(img, (thr_x, 0), (thr_x, h-1), (255,0,0), 1, lineType=cv2.LINE_AA)
+    cv2.putText(img, title, (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (20,20,20), 1, cv2.LINE_AA)
+
+    return img
+
 
 
 def read_rgb(file_path):
