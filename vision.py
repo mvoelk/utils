@@ -210,7 +210,7 @@ def center_of_mass(mask):
     else:
         return None
 
-def bounding_box(mask, largest_contour=False):
+def oriented_bounding_box(mask, largest_contour=False):
     """Calculates the oriented bounding box for a mask
 
     # Arguments
@@ -218,10 +218,10 @@ def bounding_box(mask, largest_contour=False):
         largest_contour: whether to use only the largest contour
 
     # Return
-        pts: first point is left in angle direction
-        x, y: center of box
-        w, h: width is short side, hight is long side
+        (x, y): center of box
+        (w, h): width is short side, height is long side
         angle: [0, 180], 0 is horizontal
+        pts: shape (4,2), first point is left in angle direction
     """
     
     cnts, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -243,9 +243,20 @@ def bounding_box(mask, largest_contour=False):
         pts = [box[i] for i in (1,2,3,0)]
     pts = np.int32(pts).tolist()
 
-    return pts, (x,y), (w,h), angle
+    return (x,y), (w,h), angle, pts
 
 def axis_aligned_bounding_box(mask, largest_contour=False):
+    """Calculates the axis-aligned bounding box for a mask
+
+    # Arguments
+        mask: shape (h,w)
+        largest_contour: whether to use only the largest contour
+
+    # Return
+        (x_min, y_min, x_max, y_max): coordinates of bounding box
+        (x, y): center of box
+        (w, h): width and height of box
+    """
     cnts, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if len(cnts) == 0:
@@ -258,6 +269,35 @@ def axis_aligned_bounding_box(mask, largest_contour=False):
     x, y = (x + w/2, y + h/2)
 
     return (x_min, y_min, x_max, y_max), (x, y), (w, h)
+
+
+def draw_axis_aligned_bounding_box(img, xy=None, wh=None, pts=None, thickness=2):
+    if xy is not None and wh is not None:
+        (x, y), (w, h) = xy, wh
+        x_min, y_min, x_max, y_max = x-w/2, y-h/2, x+w/2, y+h/2
+        cv2.rectangle(img, (int(x_min-1),int(y_min-1)), (int(x_max+1),int(y_max+1)), (0,255,0), thickness)
+    if pts is not None:
+        x_min, y_min, x_max, y_max = pts
+        cv2.rectangle(img, (int(x_min-1),int(y_min-1)), (int(x_max+1),int(y_max+1)), (0,0,255), thickness)
+    return img
+
+def draw_oriented_bounding_box(img, xy=None, wh=None, angle=None, pts=None, linewidth=2):
+    if xy is not None and wh is not None and angle is not None:
+        (x,y), (w,h) = xy, wh
+        r = 0.5*min(w,h)
+        a = angle / 180 * np.pi
+        rect = (tuple(xy), tuple(wh), 90-angle)
+        box = cv2.boxPoints(rect).astype(int)
+        cv2.polylines(img, [box], True, (0,255,0), linewidth, lineType=cv2.LINE_AA)
+        end = (int(x + r*np.cos(a)), int(y - r*np.sin(a)))
+        cv2.line(img, (int(x), int(y)), end, (255,0,0), linewidth, lineType=cv2.LINE_AA)
+        cv2.circle(img, (int(x), int(y)), 2*linewidth, (0,0,255), -1, lineType=cv2.LINE_AA)
+    if pts is not None:
+        pts_i = np.int32(pts)
+        cv2.polylines(img, [pts_i], True, (0,0,255), linewidth, lineType=cv2.LINE_AA)
+        cv2.circle(img, tuple(pts_i[0]), 2*linewidth, (255,0,0), -1, lineType=cv2.LINE_AA)
+    return img
+
 
 
 def project_box_mask(T_box, box_size, K, image_size):
@@ -471,8 +511,13 @@ def write_mask(file_path, mask):
 
 
 def tile_images(x):
-    # x: shape (m, n, h, w, ...)
-    # result: shape (m*h, n*w, ...)
+    """
+    # Arguments
+        x: shape (m, n, h, w, ...)
+
+    # Return
+        image: shape (m*h, n*w, ...)
+    """
     m, n, h, w = x.shape[:4]
     axes = (0,2,1,3) + tuple(range(4, x.ndim))
     return x.transpose(axes).reshape(m*h, n*w, *x.shape[4:])

@@ -213,17 +213,35 @@ def plot_point_assignment(points1, points2, ordered=False, point_size=2.0, figsi
 
 
 def draw_bounding_box(box, linewidth=1, edgecolor='r'):
-    '''Draws an axis-aligned bounding box defined by (x, y, w, h)
+    '''Draws an axis-aligned bounding box defined by min corner and size.
     
     # Arguments
-        box: shape (4)
+        box: shape (4,) with (x, y, w, h)
     '''
     x, y, w, h = box
     ax = plt.gca()
     ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor=edgecolor, facecolor='none'))
 
+def draw_axis_aligned_bounding_box(xy=None, wh=None, pts=None, linewidth=2):
+    '''Draws an axis-aligned bounding box defined center (xy) and size (wh) or by min-max corners (pts).
+    
+    # Arguments
+        xy: shape (2,)
+        wh: shape(2,)
+        pts: shape (4,) with (x_min, y_min, x_max, y_max)
+    '''
+    ax = plt.gca()
+    if xy is not None and wh is not None:
+        (x,y), (w,h) = xy, wh
+        (x,y) = x-w/2, y-h/2
+        ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor='g', facecolor='none'))
+    if pts is not None:
+        (x_min, y_min, x_max, y_max) = pts
+        (x, y), (w, h) = (x_min, y_min), (x_max - x_min, y_max - y_min)
+        ax.add_patch(plt.Rectangle((x-1, y-1), w+1, h+1, linewidth=linewidth, edgecolor='r', facecolor='none'))
+
 def draw_oriented_bounding_box(xy=None, wh=None, angle=None, pts=None, linewidth=2):
-    '''Draws an oriented bounding box defined by corner points (pts) or center (xy), size (wh) and angle.
+    '''Draws an oriented bounding box defined center (xy), size (wh) and angle or by corner points (pts).
     
     # Arguments
         xy: shape (2,)
@@ -242,8 +260,9 @@ def draw_oriented_bounding_box(xy=None, wh=None, angle=None, pts=None, linewidth
         ax.add_patch(plt.Polygon(pts, closed=True, edgecolor='r', facecolor='none', lw=linewidth, alpha=0.8))
         ax.plot(pts[0][0], pts[0][1], 'bo', ms=linewidth*2)
 
+
 def draw_frame_3d(T=np.eye(4), length=1.0, lw=2):
-    '''Draws a homogeneous transformation matrix in 3d'''
+    '''Draws a homogeneous transformation matrix as coordinate axes in a 3d plot.'''
     R, t = T[:3,:3], T[:3,3]
     axes = R * length
     colors = ['r', 'g', 'b']
